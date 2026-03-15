@@ -57,12 +57,9 @@ export async function fetchListings(
     return { data: items.slice(from, from + pageSize), count };
   }
 
-  // Only select columns needed for listing cards (skip description, photos for speed)
-  const listColumns = "id,source,source_id,url,title,price,surface,price_per_sqm,rooms,arrondissement,dpe,seller_type,opportunity_score,score_details,created_at,photos";
-
   let query = supabase
     .from("listings")
-    .select(listColumns, { count: "exact" })
+    .select("id,source,source_id,url,title,price,surface,price_per_sqm,rooms,arrondissement,dpe,seller_type,opportunity_score,score_details,created_at,photos", { count: "exact" })
     .eq("is_active", true);
 
   if (filters.minPriceSqm) query = query.gte("price_per_sqm", filters.minPriceSqm);
@@ -85,7 +82,7 @@ export async function fetchListings(
 
   const { data, count, error } = await query;
   if (error) return { data: [], count: 0 };
-  return { data: data || [], count: count || 0 };
+  return { data: (data as unknown as Listing[]) || [], count: count || 0 };
 }
 
 export async function fetchListingById(id: string): Promise<Listing | null> {
