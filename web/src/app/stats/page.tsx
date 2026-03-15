@@ -224,17 +224,19 @@ function BarChartCSS({
   const maxIdx = values.indexOf(max);
 
   return (
-    <div className="flex items-end gap-2 h-36">
+    <div className="flex items-end gap-2" style={{ height: 144 }}>
       {data.map((d, i) => {
         const val = values[i];
         const pct = (val / max) * 100;
+        const barHeight = Math.max(pct, 4);
         return (
-          <div key={i} className="flex-1 flex flex-col items-center gap-1.5">
+          <div key={i} className="flex-1 flex flex-col items-center justify-end h-full gap-1.5">
             <span className="text-[11px] font-medium text-muted-foreground tabular-nums">{val}</span>
-            <div className="w-full relative rounded-t-md overflow-hidden" style={{ height: `${Math.max(pct, 4)}%` }}>
-              <div className={`absolute inset-0 ${i === maxIdx ? activeColor : color} transition-all duration-500`} />
-            </div>
-            <span className="text-[10px] text-muted-foreground font-medium">{String(d[labelKey])}</span>
+            <div
+              className={`w-full rounded-t-md ${i === maxIdx ? activeColor : color} transition-all duration-500`}
+              style={{ height: `${barHeight}%`, minHeight: 4 }}
+            />
+            <span className="text-[10px] text-muted-foreground font-medium shrink-0">{String(d[labelKey])}</span>
           </div>
         );
       })}
