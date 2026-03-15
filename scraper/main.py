@@ -41,8 +41,10 @@ logger = logging.getLogger("main")
 
 SCRAPERS = {
     "bienici": BienIciScraper,
-    "pap": PAPScraper,
-    "leboncoin": LeBonCoinScraper,
+    # PAP and LeBonCoin disabled: their anti-bot protections (Cloudflare/DataDome)
+    # block requests from cloud servers. Re-enable when residential proxies are set up.
+    # "pap": PAPScraper,
+    # "leboncoin": LeBonCoinScraper,
 }
 
 

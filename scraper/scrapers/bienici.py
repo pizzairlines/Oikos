@@ -27,7 +27,7 @@ HEADERS = {
 }
 
 PAGE_SIZE = 24
-MAX_PAGES = 10  # 240 listings max per run
+MAX_PAGES = 100  # Up to 2400 listings per run
 
 
 class BienIciScraper(BaseScraper):
