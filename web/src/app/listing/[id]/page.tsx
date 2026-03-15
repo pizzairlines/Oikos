@@ -8,7 +8,7 @@ import {
   ArrowUpRight, Ruler, DoorOpen, Loader2, Calculator,
 } from "lucide-react";
 import { Listing, SOURCE_LABELS } from "@/lib/types";
-import { fetchListingById, fetchFavoriteIds, toggleFavorite } from "@/lib/data";
+import { fetchListingById, fetchFavoriteIds, toggleFavorite, fetchPriceHistory, PricePoint } from "@/lib/data";
 import { ScoreBadge } from "@/components/ScoreBadge";
 import { formatPrice, formatPriceSqm, formatArrondissement, cn } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -19,6 +19,7 @@ export default function ListingPage() {
   const params = useParams();
   const [listing, setListing] = useState<Listing | null>(null);
   const [isFavorite, setIsFavorite] = useState(false);
+  const [priceHistory, setPriceHistory] = useState<PricePoint[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -27,6 +28,10 @@ export default function ListingPage() {
       setListing(data);
       const favIds = await fetchFavoriteIds();
       setIsFavorite(favIds.has(params.id as string));
+      if (data) {
+        const history = await fetchPriceHistory(data.id);
+        setPriceHistory(history);
+      }
       setLoading(false);
     }
     load();
@@ -194,6 +199,59 @@ export default function ListingPage() {
                 </div>
               ))}
             </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Price history */}
+      {priceHistory.length > 1 && (
+        <Card className="mb-4">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm flex items-center gap-1.5">
+              <ArrowUpRight className="h-3.5 w-3.5" />
+              Historique des prix
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              {priceHistory.map((p, i) => {
+                const prev = i > 0 ? priceHistory[i - 1] : null;
+                const diff = prev ? p.price - prev.price : 0;
+                const pct = prev && prev.price ? ((diff / prev.price) * 100).toFixed(1) : null;
+                return (
+                  <div key={i} className="flex items-center justify-between text-sm">
+                    <span className="text-xs text-muted-foreground">
+                      {new Date(p.recorded_at).toLocaleDateString("fr-FR")}
+                    </span>
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium tabular-nums">{formatPrice(p.price)}</span>
+                      {diff !== 0 && (
+                        <span className={cn(
+                          "text-xs tabular-nums",
+                          diff < 0 ? "text-green-600" : "text-destructive"
+                        )}>
+                          {diff > 0 ? "+" : ""}{new Intl.NumberFormat("fr-FR").format(diff)} € ({pct}%)
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            {priceHistory.length >= 2 && (() => {
+              const first = priceHistory[0].price;
+              const last = priceHistory[priceHistory.length - 1].price;
+              const totalDiff = last - first;
+              const totalPct = first ? ((totalDiff / first) * 100).toFixed(1) : "0";
+              return (
+                <div className="mt-3 pt-3 border-t flex justify-between text-xs">
+                  <span className="text-muted-foreground">Evolution totale</span>
+                  <span className={cn("font-medium", totalDiff < 0 ? "text-green-600" : totalDiff > 0 ? "text-destructive" : "")}>
+                    {totalDiff > 0 ? "+" : ""}{new Intl.NumberFormat("fr-FR").format(totalDiff)} € ({totalPct}%)
+                  </span>
+                </div>
+              );
+            })()}
           </CardContent>
         </Card>
       )}

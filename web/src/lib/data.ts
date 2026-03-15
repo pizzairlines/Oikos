@@ -316,3 +316,53 @@ function buildStats(listings: Listing[]): StatsData {
     topOpportunities,
   };
 }
+
+// ── Map data ──
+
+export interface MapListing {
+  id: string;
+  title: string;
+  price: number | null;
+  price_per_sqm: number | null;
+  surface: number | null;
+  rooms: number | null;
+  arrondissement: string | null;
+  opportunity_score: number;
+  latitude: number;
+  longitude: number;
+}
+
+export async function fetchMapListings(): Promise<MapListing[]> {
+  if (isMock) {
+    return []; // Mock data has no coordinates
+  }
+
+  const { data } = await supabase
+    .from("listings")
+    .select("id,title,price,price_per_sqm,surface,rooms,arrondissement,opportunity_score,latitude,longitude")
+    .eq("is_active", true)
+    .not("latitude", "is", null)
+    .not("longitude", "is", null);
+
+  return (data as unknown as MapListing[]) || [];
+}
+
+// ── Price history ──
+
+export interface PricePoint {
+  price: number;
+  price_per_sqm: number | null;
+  recorded_at: string;
+}
+
+export async function fetchPriceHistory(listingId: string): Promise<PricePoint[]> {
+  if (isMock) return [];
+
+  const { data } = await supabase
+    .from("price_history")
+    .select("price,price_per_sqm,recorded_at")
+    .eq("listing_id", listingId)
+    .order("recorded_at", { ascending: true });
+
+  return (data as PricePoint[]) || [];
+}

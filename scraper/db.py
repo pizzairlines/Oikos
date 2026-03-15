@@ -18,17 +18,64 @@ def get_client() -> Client:
 
 
 def upsert_listing(listing: dict[str, Any]) -> dict[str, Any] | None:
-    """Insert or update a listing. Returns the upserted row."""
+    """Insert or update a listing. Tracks price changes in price_history."""
     client = get_client()
     listing["updated_at"] = datetime.now(timezone.utc).isoformat()
 
+    new_price = listing.get("price")
+
+    # Check if price changed for existing listing
+    if new_price:
+        try:
+            existing = (
+                client.table("listings")
+                .select("id,price")
+                .eq("source", listing["source"])
+                .eq("source_id", listing["source_id"])
+                .maybe_single()
+                .execute()
+            )
+            if existing.data and existing.data["price"] and existing.data["price"] != new_price:
+                client.table("price_history").insert({
+                    "listing_id": existing.data["id"],
+                    "price": new_price,
+                    "price_per_sqm": listing.get("price_per_sqm"),
+                }).execute()
+                logger.info(
+                    f"[db] Price change: {existing.data['price']} -> {new_price} "
+                    f"for {listing['source']}/{listing['source_id']}"
+                )
+        except Exception as e:
+            logger.debug(f"[db] Price history check failed: {e}")
+
+    # Upsert the listing
     result = (
         client.table("listings")
         .upsert(listing, on_conflict="source,source_id")
         .execute()
     )
+
     if result.data:
-        return result.data[0]
+        row = result.data[0]
+        # Record initial price for new listings
+        if new_price:
+            try:
+                hist = (
+                    client.table("price_history")
+                    .select("id")
+                    .eq("listing_id", row["id"])
+                    .limit(1)
+                    .execute()
+                )
+                if not hist.data:
+                    client.table("price_history").insert({
+                        "listing_id": row["id"],
+                        "price": new_price,
+                        "price_per_sqm": listing.get("price_per_sqm"),
+                    }).execute()
+            except Exception as e:
+                logger.debug(f"[db] Initial price record failed: {e}")
+        return row
     return None
 
 

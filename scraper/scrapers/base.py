@@ -39,6 +39,8 @@ class RawListing:
     seller_type: str | None = None
     photos: list[str] = field(default_factory=list)
     published_at: str | None = None
+    latitude: float | None = None
+    longitude: float | None = None
 
     def to_db_dict(self) -> dict[str, Any]:
         """Convert to a dict suitable for database insertion."""
@@ -59,6 +61,8 @@ class RawListing:
             "seller_type": self.seller_type,
             "photos": self.photos,
             "published_at": self.published_at,
+            "latitude": self.latitude,
+            "longitude": self.longitude,
         }
         # Calculate price per sqm
         if self.price and self.surface and self.surface > 0:

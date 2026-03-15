@@ -105,6 +105,10 @@ class BienIciScraper(BaseScraper):
         # Publication date
         pub_date = ad.get("publicationDate")
 
+        # Coordinates (BienIci provides blurred or exact lat/lng)
+        lat = ad.get("blurredLatitude") or ad.get("latitude")
+        lng = ad.get("blurredLongitude") or ad.get("longitude")
+
         return RawListing(
             source="bienici",
             source_id=str(ad_id),
@@ -120,8 +124,10 @@ class BienIciScraper(BaseScraper):
             dpe=dpe,
             charges=ad.get("charges"),
             seller_type=seller_type,
-            photos=photos[:5],  # Keep first 5 photos
+            photos=photos[:5],
             published_at=pub_date,
+            latitude=float(lat) if lat else None,
+            longitude=float(lng) if lng else None,
         )
 
     async def scrape(self) -> list[RawListing]:
