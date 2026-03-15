@@ -3,6 +3,7 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
+import { DesktopHeader } from "@/components/DesktopHeader";
 import { ToastProvider } from "@/components/Toast";
 import { BottomNav } from "@/components/BottomNav";
 
@@ -32,8 +33,9 @@ export default function RootLayout({
           <SidebarProvider>
             <AppSidebar />
             <SidebarInset>
+              <DesktopHeader />
               <main className="flex-1 overflow-y-auto">
-                <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6 sm:py-8 pb-24 md:pb-8">
+                <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-8 pb-24 md:pb-8">
                   {children}
                 </div>
               </main>

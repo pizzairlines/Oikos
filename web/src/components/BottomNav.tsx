@@ -15,7 +15,15 @@ export function BottomNav() {
   const pathname = usePathname();
 
   return (
-    <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-xl border-t border-border/50 safe-bottom">
+    <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 safe-bottom"
+      style={{
+        background: "oklch(0.98 0.005 250 / 0.65)",
+        backdropFilter: "blur(40px) saturate(2)",
+        WebkitBackdropFilter: "blur(40px) saturate(2)",
+        borderTop: "1px solid oklch(1 0 0 / 0.2)",
+        boxShadow: "0 -2px 20px oklch(0 0 0 / 0.05), inset 0 1px 0 oklch(1 0 0 / 0.4)",
+      }}
+    >
       <div className="flex items-center justify-around h-16">
         {NAV_ITEMS.map((item) => {
           const isActive =
@@ -27,14 +35,14 @@ export function BottomNav() {
               key={item.href}
               href={item.href}
               className={cn(
-                "flex flex-col items-center justify-center gap-1 flex-1 h-full transition-colors",
+                "flex flex-col items-center justify-center gap-1 flex-1 h-full transition-all duration-200",
                 isActive
-                  ? "text-foreground"
-                  : "text-muted-foreground/70"
+                  ? "text-primary"
+                  : "text-muted-foreground/60 active:text-muted-foreground"
               )}
             >
               <item.icon className={cn("h-[22px] w-[22px]", isActive && "stroke-[2.5]")} />
-              <span className="text-[11px] font-medium">{item.label}</span>
+              <span className={cn("text-[11px]", isActive ? "font-semibold" : "font-medium")}>{item.label}</span>
             </a>
           );
         })}

@@ -19,7 +19,7 @@ export default function FavoritesPage() {
   return (
     <div>
       <div className="flex items-center gap-2.5 mb-8">
-        <h1 className="text-xl font-bold text-foreground">Favoris</h1>
+        <h1 className="text-xl font-bold text-foreground md:hidden">Favoris</h1>
         {!loading && listings.length > 0 && (
           <span className="text-sm text-muted-foreground bg-muted px-2.5 py-0.5 rounded-full tabular-nums">
             {listings.length}
@@ -45,7 +45,7 @@ export default function FavoritesPage() {
           </Button>
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-5">
           {listings.map((listing, i) => (
             <ListingCard
               key={listing.id}

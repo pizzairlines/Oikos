@@ -60,9 +60,9 @@ export default function StatsPage() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto">
+    <div className="max-w-5xl mx-auto">
       <div className="flex items-center gap-2.5 mb-8">
-        <h1 className="text-xl font-bold text-foreground">Statistiques</h1>
+        <h1 className="text-xl font-bold text-foreground md:hidden">Statistiques</h1>
         <span className="text-sm text-muted-foreground bg-muted px-2.5 py-0.5 rounded-full">
           {stats.totalListings.toLocaleString("fr-FR")} annonces
         </span>

@@ -19,7 +19,7 @@ export function ListingSkeleton() {
 
 export function ListingGridSkeleton({ count = 6 }: { count?: number }) {
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-5">
       {Array.from({ length: count }).map((_, i) => (
         <ListingSkeleton key={i} />
       ))}
@@ -63,7 +63,7 @@ export function DetailSkeleton() {
 
 export function StatsSkeleton() {
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
+    <div className="max-w-5xl mx-auto space-y-6">
       <div className="flex items-center gap-2.5">
         <Skeleton className="h-4 w-4 rounded" />
         <Skeleton className="h-5 w-28" />

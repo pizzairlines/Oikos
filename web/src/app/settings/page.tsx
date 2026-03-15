@@ -37,8 +37,8 @@ export default function SettingsPage() {
     <div className="max-w-2xl mx-auto">
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-2.5">
-          <Bell className="h-4 w-4 text-muted-foreground" />
-          <h1 className="text-lg font-semibold text-foreground">Alertes</h1>
+          <Bell className="h-4 w-4 text-muted-foreground md:hidden" />
+          <h1 className="text-lg font-semibold text-foreground md:hidden">Alertes</h1>
         </div>
         <Button size="sm" className="rounded-xl" onClick={startCreate}>
           <Plus className="h-3.5 w-3.5" />
