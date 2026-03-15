@@ -2,11 +2,13 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-# Install system deps for Playwright
+# Install system deps for Playwright Chromium
 RUN apt-get update && apt-get install -y --no-install-recommends \
     wget \
     ca-certificates \
     fonts-liberation \
+    fonts-unifont || true \
+    && apt-get install -y --no-install-recommends \
     libasound2 \
     libatk-bridge2.0-0 \
     libatk1.0-0 \
@@ -25,8 +27,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt \
-    && playwright install chromium --with-deps
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Install Playwright browsers without --with-deps (deps already installed above)
+RUN playwright install chromium
 
 COPY . .
 
