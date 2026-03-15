@@ -2,7 +2,6 @@
 
 import { usePathname } from "next/navigation";
 import { SidebarTrigger } from "@/components/ui/sidebar";
-import { Separator } from "@/components/ui/separator";
 
 const BREADCRUMBS: Record<string, string[]> = {
   "/": ["Annonces", "Explorer"],
@@ -23,8 +22,7 @@ export function DesktopHeader() {
   return (
     <header className="hidden md:flex items-center h-12 px-4 border-b border-border/40 shrink-0 bg-background">
       <SidebarTrigger className="h-7 w-7 text-muted-foreground" />
-      <Separator orientation="vertical" className="mx-3 h-4" />
-      <nav className="flex items-center gap-1.5 text-sm">
+      <nav className="flex items-center gap-1.5 text-sm ml-3">
         {crumbs.map((crumb, i) => (
           <span key={i} className="flex items-center gap-1.5">
             {i > 0 && <span className="text-muted-foreground/50">&rsaquo;</span>}
