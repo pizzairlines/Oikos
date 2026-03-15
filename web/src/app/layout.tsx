@@ -5,6 +5,7 @@ import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/s
 import { AppSidebar } from "@/components/AppSidebar";
 import { Separator } from "@/components/ui/separator";
 import { ToastProvider } from "@/components/Toast";
+import { BottomNav } from "@/components/BottomNav";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -38,12 +39,13 @@ export default function RootLayout({
                 <span className="text-sm font-semibold">Oikos</span>
               </header>
               <main className="flex-1 overflow-y-auto">
-                <div className="mx-auto max-w-6xl px-6 py-8">
+                <div className="mx-auto max-w-6xl px-4 py-5 sm:px-6 sm:py-8 pb-20 md:pb-8">
                   {children}
                 </div>
               </main>
             </SidebarInset>
           </SidebarProvider>
+          <BottomNav />
         </ToastProvider>
       </body>
     </html>

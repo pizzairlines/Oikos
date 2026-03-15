@@ -13,11 +13,15 @@ interface ListingCardProps {
   listing: Listing;
   isFavorite?: boolean;
   onToggleFavorite?: (id: string) => void;
+  index?: number;
 }
 
-export function ListingCard({ listing, isFavorite, onToggleFavorite }: ListingCardProps) {
+export function ListingCard({ listing, isFavorite, onToggleFavorite, index = 0 }: ListingCardProps) {
   return (
-    <Card className="group overflow-hidden py-0 transition-shadow hover:shadow-md">
+    <Card
+      className="group overflow-hidden py-0 transition-shadow hover:shadow-md animate-card-enter"
+      style={{ animationDelay: `${Math.min(index * 50, 300)}ms` }}
+    >
       {/* Image */}
       <div className="relative aspect-[16/10] bg-muted overflow-hidden">
         {listing.photos && listing.photos.length > 0 ? (
@@ -71,18 +75,18 @@ export function ListingCard({ listing, isFavorite, onToggleFavorite }: ListingCa
 
       {/* Content */}
       <a href={`/listing/${listing.id}`} className="block">
-        <CardContent className="p-4">
+        <CardContent className="p-3 sm:p-4">
           <h3 className="text-sm font-medium text-foreground line-clamp-1 mb-1">
             {listing.title}
           </h3>
-          <div className="flex items-center gap-1 text-muted-foreground mb-3">
+          <div className="flex items-center gap-1 text-muted-foreground mb-2.5 sm:mb-3">
             <MapPin className="h-3 w-3" />
             <span className="text-xs">{formatArrondissement(listing.arrondissement)}</span>
             {listing.seller_type === "particulier" && (
               <span className="text-xs opacity-70 ml-1">&middot; Particulier</span>
             )}
           </div>
-          <div className="flex items-center gap-4 text-xs">
+          <div className="flex items-center gap-3 sm:gap-4 text-xs">
             <div>
               <span className="text-muted-foreground">Surface </span>
               <span className="font-medium text-foreground tabular-nums">

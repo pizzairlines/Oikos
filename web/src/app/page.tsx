@@ -59,12 +59,13 @@ function HomeContent() {
       ) : (
         <>
           <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
-            {listings.map((listing) => (
+            {listings.map((listing, i) => (
               <ListingCard
                 key={listing.id}
                 listing={listing}
                 isFavorite={favoriteIds.has(listing.id)}
                 onToggleFavorite={handleToggleFavorite}
+                index={i}
               />
             ))}
           </div>
