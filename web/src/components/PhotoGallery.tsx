@@ -47,7 +47,7 @@ export function PhotoGallery({ photos, title }: PhotoGalleryProps) {
   return (
     <>
       {/* Main photo */}
-      <div className="mb-4 rounded-xl overflow-hidden">
+      <div className="mb-5 rounded-2xl overflow-hidden">
         <div
           className="relative w-full h-56 sm:h-72 cursor-pointer group"
           onClick={() => openLightbox(0)}
@@ -69,7 +69,7 @@ export function PhotoGallery({ photos, title }: PhotoGalleryProps) {
 
         {/* Thumbnail strip */}
         {photos.length > 1 && (
-          <div className="flex gap-1 mt-1 overflow-x-auto pb-1 snap-x">
+          <div className="flex gap-1.5 mt-1.5 overflow-x-auto pb-1 snap-x hide-scrollbar">
             {photos.slice(1, 8).map((photo, i) => (
               <div
                 key={i}

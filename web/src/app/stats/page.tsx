@@ -79,7 +79,7 @@ export default function StatsPage() {
       {/* Charts row */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
         <div className="glass rounded-2xl">
-          <div className="px-5 pt-5 pb-2">
+          <div className="px-5 pt-5 pb-3">
             <h3 className="text-sm font-semibold flex items-center gap-2">
               <TrendingUp className="h-4 w-4 text-primary" />
               Distribution prix/m²
@@ -97,7 +97,7 @@ export default function StatsPage() {
         </div>
 
         <div className="glass rounded-2xl">
-          <div className="px-5 pt-5 pb-2">
+          <div className="px-5 pt-5 pb-3">
             <h3 className="text-sm font-semibold flex items-center gap-2">
               <BarChart3 className="h-4 w-4 text-primary" />
               Distribution scores
@@ -117,7 +117,7 @@ export default function StatsPage() {
 
       {/* By arrondissement */}
       <div className="glass rounded-2xl mb-8">
-        <div className="px-5 pt-5 pb-2">
+        <div className="px-5 pt-5 pb-3">
           <h3 className="text-sm font-semibold flex items-center gap-2">
             <MapPin className="h-4 w-4 text-primary" />
             Par arrondissement
@@ -163,7 +163,7 @@ export default function StatsPage() {
 
       {/* Top 5 */}
       <div className="glass rounded-2xl mb-8">
-        <div className="px-5 pt-5 pb-2">
+        <div className="px-5 pt-5 pb-3">
           <h3 className="text-sm font-semibold">Top 5 opportunites</h3>
         </div>
         <div className="px-5 pb-5">

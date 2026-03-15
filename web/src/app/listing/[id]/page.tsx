@@ -14,7 +14,7 @@ import { PhotoGallery } from "@/components/PhotoGallery";
 import { DetailSkeleton } from "@/components/ListingSkeleton";
 import { ErrorState } from "@/components/ErrorState";
 import { formatPrice, formatPriceSqm, formatArrondissement, cn } from "@/lib/utils";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+// Glass cards used directly via className
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -95,8 +95,8 @@ export default function ListingPage() {
       <PhotoGallery photos={listing.photos || []} title={listing.title} />
 
       {/* Header card */}
-      <Card className="mb-4 border-0 shadow-sm rounded-2xl">
-        <CardContent>
+      <div className="glass rounded-2xl mb-5">
+        <div className="p-5">
           <div className="flex items-start justify-between gap-3 mb-1">
             <h1 className="text-base font-semibold text-foreground">{listing.title}</h1>
             <ScoreBadge score={listing.opportunity_score} size="lg" />
@@ -121,7 +121,7 @@ export default function ListingPage() {
               { label: "Surface", value: listing.surface ? `${listing.surface} m\u00b2` : "\u2014" },
               { label: "Prix/m\u00b2", value: formatPriceSqm(listing.price_per_sqm) },
             ].map((m) => (
-              <div key={m.label} className="bg-muted rounded-lg p-3 text-center">
+              <div key={m.label} className="glass-subtle rounded-xl p-3 text-center">
                 <div className="text-[15px] font-semibold text-foreground tabular-nums">{m.value}</div>
                 <div className="text-xs text-muted-foreground mt-0.5">{m.label}</div>
               </div>
@@ -141,15 +141,15 @@ export default function ListingPage() {
               {isFavorite ? "Favori" : "Ajouter"}
             </Button>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
       {/* Details */}
-      <Card className="mb-4 border-0 shadow-sm rounded-2xl">
-        <CardHeader>
-          <CardTitle className="text-sm">Details</CardTitle>
-        </CardHeader>
-        <CardContent>
+      <div className="glass rounded-2xl mb-5">
+        <div className="px-5 pt-5 pb-3">
+          <h3 className="text-sm font-semibold">Details</h3>
+        </div>
+        <div className="px-5 pb-5">
           <div className="grid grid-cols-2 gap-y-2.5 text-sm">
             {listing.rooms && (
               <DetailRow icon={DoorOpen} label="Pieces" value={String(listing.rooms)} />
@@ -174,16 +174,16 @@ export default function ListingPage() {
               />
             )}
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
       {/* Score breakdown */}
       {details && details.total > 0 && (
-        <Card className="mb-4 border-0 shadow-sm rounded-2xl">
-          <CardHeader>
-            <CardTitle className="text-sm">Score d&apos;opportunite</CardTitle>
-          </CardHeader>
-          <CardContent>
+        <div className="glass rounded-2xl mb-5">
+          <div className="px-5 pt-5 pb-3">
+            <h3 className="text-sm font-semibold">Score d&apos;opportunite</h3>
+          </div>
+          <div className="px-5 pb-5">
             <div className="space-y-3">
               {[
                 { label: "Prix", weight: "40%", value: details.price },
@@ -199,29 +199,29 @@ export default function ListingPage() {
                     </span>
                     <span className="font-mono font-medium text-foreground tabular-nums">{item.value}</span>
                   </div>
-                  <div className="h-1.5 bg-muted rounded-full overflow-hidden">
+                  <div className="h-1.5 bg-primary/10 rounded-full overflow-hidden">
                     <div
-                      className="h-full bg-foreground/25 rounded-full transition-all"
+                      className="h-full bg-primary/40 rounded-full transition-all"
                       style={{ width: `${item.value}%` }}
                     />
                   </div>
                 </div>
               ))}
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       )}
 
       {/* Price history */}
       {priceHistory.length > 1 && (
-        <Card className="mb-4 border-0 shadow-sm rounded-2xl">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm flex items-center gap-1.5">
+        <div className="glass rounded-2xl mb-5">
+          <div className="px-5 pt-5 pb-3">
+            <h3 className="text-sm font-semibold flex items-center gap-1.5">
               <ArrowUpRight className="h-3.5 w-3.5" />
               Historique des prix
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
+            </h3>
+          </div>
+          <div className="px-5 pb-5">
             <div className="space-y-2">
               {priceHistory.map((p, i) => {
                 const prev = i > 0 ? priceHistory[i - 1] : null;
@@ -261,8 +261,8 @@ export default function ListingPage() {
                 </div>
               );
             })()}
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       )}
 
       {/* Profitability simulator */}
@@ -272,16 +272,16 @@ export default function ListingPage() {
 
       {/* Description */}
       {listing.description && (
-        <Card className="mb-4 border-0 shadow-sm rounded-2xl">
-          <CardHeader>
-            <CardTitle className="text-sm">Description</CardTitle>
-          </CardHeader>
-          <CardContent>
+        <div className="glass rounded-2xl mb-5">
+          <div className="px-5 pt-5 pb-3">
+            <h3 className="text-sm font-semibold">Description</h3>
+          </div>
+          <div className="px-5 pb-5">
             <p className="text-sm text-muted-foreground whitespace-pre-line leading-relaxed">
               {listing.description}
             </p>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       )}
     </div>
   );
@@ -356,14 +356,14 @@ function RentabilitySimulator({ listing }: { listing: Listing }) {
   const fmt = (n: number) => new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 0 }).format(n);
 
   return (
-    <Card className="mb-4 border-0 shadow-sm rounded-2xl">
-      <CardHeader className="pb-2">
-        <CardTitle className="text-sm flex items-center gap-1.5">
+    <div className="glass rounded-2xl mb-5">
+      <div className="px-5 pt-5 pb-3">
+        <h3 className="text-sm font-semibold flex items-center gap-1.5">
           <Calculator className="h-3.5 w-3.5" />
           Simulateur de rentabilite
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
+        </h3>
+      </div>
+      <div className="px-5 pb-5 space-y-4">
         {/* Inputs */}
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
           <SimInput label="Loyer mensuel" value={monthlyRent} onChange={setMonthlyRent} suffix="€" />
@@ -399,8 +399,8 @@ function RentabilitySimulator({ listing }: { listing: Listing }) {
           <p>Prix : {fmt(listing.price || 0)} € + Notaire : {fmt(sim.notaryFees)} € + Travaux : {fmt(sim.worksCost)} €</p>
           <p>Revenu net annuel : {fmt(sim.annualNet)} €</p>
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }
 
@@ -420,7 +420,7 @@ function SimInput({
           type="number"
           value={value}
           onChange={(e) => onChange(Number(e.target.value) || 0)}
-          className="h-8 text-sm pr-8"
+          className="h-9 text-sm pr-8 rounded-xl"
         />
         <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
           {suffix}
@@ -440,12 +440,13 @@ function ResultCard({
 }) {
   return (
     <div className={cn(
-      "rounded-lg p-2.5 text-center",
-      warn ? "bg-destructive/10" : highlight ? "bg-green-50" : "bg-muted",
+      "glass-subtle rounded-xl p-3 text-center",
+      warn && "!bg-destructive/10",
+      highlight && "!bg-emerald-500/10",
     )}>
       <div className={cn(
         "text-sm font-semibold tabular-nums",
-        warn ? "text-destructive" : highlight ? "text-green-700" : "text-foreground",
+        warn ? "text-destructive" : highlight ? "text-emerald-600" : "text-foreground",
       )}>
         {value}
       </div>

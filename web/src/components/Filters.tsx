@@ -5,7 +5,7 @@ import { SlidersHorizontal, ArrowUpDown, X } from "lucide-react";
 import { Filters as FiltersType, ARRONDISSEMENTS, SortField } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent } from "@/components/ui/card";
+
 import {
   Select,
   SelectContent,
@@ -71,7 +71,7 @@ export function Filters({ filters, sortBy, onFiltersChange, onSortChange, totalC
             <SlidersHorizontal className="h-4 w-4" />
             Filtres
             {hasActiveFilters && (
-              <span className="ml-1.5 h-2 w-2 rounded-full bg-primary-foreground" />
+              <span className="ml-1.5 h-2 w-2 rounded-full bg-background" />
             )}
           </Button>
           <span className="text-sm text-muted-foreground tabular-nums">
@@ -97,8 +97,8 @@ export function Filters({ filters, sortBy, onFiltersChange, onSortChange, totalC
 
       {/* Expandable filter panel */}
       {expanded && (
-        <Card className="animate-fade-in-up border-0 shadow-md rounded-2xl">
-          <CardContent className="space-y-5 py-5">
+        <div className="glass-strong rounded-2xl animate-fade-in-up">
+          <div className="space-y-5 p-5">
             {/* Numeric filters */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               <FilterInput label="Prix/m² min" placeholder="5 000" value={filters.minPriceSqm} onChange={(v) => update({ minPriceSqm: v })} />
@@ -181,8 +181,8 @@ export function Filters({ filters, sortBy, onFiltersChange, onSortChange, totalC
                 Reinitialiser les filtres
               </Button>
             )}
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       )}
     </div>
   );

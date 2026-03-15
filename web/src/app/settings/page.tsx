@@ -48,8 +48,8 @@ export default function SettingsPage() {
 
       {/* Edit form */}
       {editing && (
-        <div className="glass-strong rounded-2xl mb-4 animate-fade-in-up">
-          <div className="px-5 pt-5 pb-2">
+        <div className="glass-strong rounded-2xl mb-5 animate-fade-in-up">
+          <div className="px-5 pt-5 pb-3">
             <h3 className="text-sm font-semibold">
               {editing.id ? "Modifier l'alerte" : "Nouvelle alerte"}
             </h3>
