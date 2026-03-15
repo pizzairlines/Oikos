@@ -208,3 +208,111 @@ export async function toggleAlertActive(alert: AlertConfig): Promise<void> {
   }
   await supabase.from("alert_configs").update({ is_active: !alert.is_active }).eq("id", alert.id);
 }
+
+// ── Stats ──
+
+export interface StatsData {
+  totalListings: number;
+  avgPriceSqm: number;
+  medianPriceSqm: number;
+  avgScore: number;
+  byArrondissement: { arr: string; count: number; avgPriceSqm: number; avgScore: number }[];
+  priceDistribution: { range: string; count: number }[];
+  scoreDistribution: { range: string; count: number }[];
+  topOpportunities: Listing[];
+}
+
+export async function fetchStats(): Promise<StatsData> {
+  if (isMock) {
+    return buildStats(MOCK_LISTINGS.filter((l) => l.is_active));
+  }
+
+  const { data } = await supabase
+    .from("listings")
+    .select("id,price,surface,price_per_sqm,rooms,arrondissement,opportunity_score,score_details,title,url,source,source_id,seller_type,dpe,created_at,photos")
+    .eq("is_active", true);
+
+  return buildStats((data as unknown as Listing[]) || []);
+}
+
+function buildStats(listings: Listing[]): StatsData {
+  const valid = listings.filter((l) => l.price_per_sqm && l.price_per_sqm > 0);
+
+  // Averages
+  const totalListings = valid.length;
+  const avgPriceSqm = totalListings > 0
+    ? Math.round(valid.reduce((s, l) => s + (l.price_per_sqm || 0), 0) / totalListings)
+    : 0;
+  const avgScore = totalListings > 0
+    ? Math.round(valid.reduce((s, l) => s + l.opportunity_score, 0) / totalListings)
+    : 0;
+
+  // Median
+  const sorted = [...valid].sort((a, b) => (a.price_per_sqm || 0) - (b.price_per_sqm || 0));
+  const medianPriceSqm = totalListings > 0
+    ? Math.round(sorted[Math.floor(totalListings / 2)].price_per_sqm || 0)
+    : 0;
+
+  // By arrondissement
+  const arrMap = new Map<string, { count: number; totalPrice: number; totalScore: number }>();
+  for (const l of valid) {
+    if (!l.arrondissement) continue;
+    const existing = arrMap.get(l.arrondissement) || { count: 0, totalPrice: 0, totalScore: 0 };
+    existing.count++;
+    existing.totalPrice += l.price_per_sqm || 0;
+    existing.totalScore += l.opportunity_score;
+    arrMap.set(l.arrondissement, existing);
+  }
+  const byArrondissement = Array.from(arrMap.entries())
+    .map(([arr, d]) => ({
+      arr,
+      count: d.count,
+      avgPriceSqm: Math.round(d.totalPrice / d.count),
+      avgScore: Math.round(d.totalScore / d.count),
+    }))
+    .sort((a, b) => a.arr.localeCompare(b.arr));
+
+  // Price distribution (€/m²)
+  const priceRanges = [
+    { label: "< 6k", min: 0, max: 6000 },
+    { label: "6-7k", min: 6000, max: 7000 },
+    { label: "7-8k", min: 7000, max: 8000 },
+    { label: "8-9k", min: 8000, max: 9000 },
+    { label: "9-10k", min: 9000, max: 10000 },
+    { label: "10-12k", min: 10000, max: 12000 },
+    { label: "> 12k", min: 12000, max: Infinity },
+  ];
+  const priceDistribution = priceRanges.map((r) => ({
+    range: r.label,
+    count: valid.filter((l) => (l.price_per_sqm || 0) >= r.min && (l.price_per_sqm || 0) < r.max).length,
+  }));
+
+  // Score distribution
+  const scoreRanges = [
+    { label: "0-20", min: 0, max: 20 },
+    { label: "20-40", min: 20, max: 40 },
+    { label: "40-60", min: 40, max: 60 },
+    { label: "60-80", min: 60, max: 80 },
+    { label: "80-100", min: 80, max: 101 },
+  ];
+  const scoreDistribution = scoreRanges.map((r) => ({
+    range: r.label,
+    count: valid.filter((l) => l.opportunity_score >= r.min && l.opportunity_score < r.max).length,
+  }));
+
+  // Top 5
+  const topOpportunities = [...valid]
+    .sort((a, b) => b.opportunity_score - a.opportunity_score)
+    .slice(0, 5);
+
+  return {
+    totalListings,
+    avgPriceSqm,
+    medianPriceSqm,
+    avgScore,
+    byArrondissement,
+    priceDistribution,
+    scoreDistribution,
+    topOpportunities,
+  };
+}

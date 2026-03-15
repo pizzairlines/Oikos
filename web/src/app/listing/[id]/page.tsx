@@ -1,11 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useParams } from "next/navigation";
 import Image from "next/image";
 import {
   ArrowLeft, ExternalLink, Heart, MapPin, Building, Zap,
-  ArrowUpRight, Ruler, DoorOpen, Loader2,
+  ArrowUpRight, Ruler, DoorOpen, Loader2, Calculator,
 } from "lucide-react";
 import { Listing, SOURCE_LABELS } from "@/lib/types";
 import { fetchListingById, fetchFavoriteIds, toggleFavorite } from "@/lib/data";
@@ -13,6 +13,7 @@ import { ScoreBadge } from "@/components/ScoreBadge";
 import { formatPrice, formatPriceSqm, formatArrondissement, cn } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 
 export default function ListingPage() {
   const params = useParams();
@@ -197,6 +198,11 @@ export default function ListingPage() {
         </Card>
       )}
 
+      {/* Profitability simulator */}
+      {listing.price && listing.surface && (
+        <RentabilitySimulator listing={listing} />
+      )}
+
       {/* Description */}
       {listing.description && (
         <Card className="mb-4">
@@ -232,5 +238,151 @@ function DetailRow({
         {value}
       </span>
     </>
+  );
+}
+
+// Average rent per m² by arrondissement (monthly, furnished ~30€/m², unfurnished ~25€/m²)
+const RENT_PER_SQM: Record<string, number> = {
+  "75001": 35, "75002": 34, "75003": 35, "75004": 36,
+  "75005": 33, "75006": 37, "75007": 36, "75008": 35,
+  "75009": 31, "75010": 30, "75011": 30, "75012": 28,
+  "75013": 27, "75014": 28, "75015": 28, "75016": 32,
+  "75017": 30, "75018": 27, "75019": 26, "75020": 26,
+};
+
+function RentabilitySimulator({ listing }: { listing: Listing }) {
+  const defaultRent = listing.arrondissement
+    ? Math.round((RENT_PER_SQM[listing.arrondissement] || 28) * (listing.surface || 30))
+    : Math.round(28 * (listing.surface || 30));
+
+  const [monthlyRent, setMonthlyRent] = useState(defaultRent);
+  const [notaryRate, setNotaryRate] = useState(8);
+  const [worksPercent, setWorksPercent] = useState(10);
+  const [monthlyCharges, setMonthlyCharges] = useState(listing.charges || 150);
+  const [vacancyRate, setVacancyRate] = useState(5);
+
+  const sim = useMemo(() => {
+    const price = listing.price || 0;
+    const notaryFees = price * (notaryRate / 100);
+    const worksCost = price * (worksPercent / 100);
+    const totalInvestment = price + notaryFees + worksCost;
+
+    const annualRent = monthlyRent * 12;
+    const effectiveRent = annualRent * (1 - vacancyRate / 100);
+    const annualCharges = monthlyCharges * 12;
+
+    const grossYield = totalInvestment > 0 ? (annualRent / totalInvestment) * 100 : 0;
+    const netYield = totalInvestment > 0 ? ((effectiveRent - annualCharges) / totalInvestment) * 100 : 0;
+    const monthlyCashflow = (effectiveRent - annualCharges) / 12;
+
+    return {
+      totalInvestment,
+      notaryFees,
+      worksCost,
+      grossYield,
+      netYield,
+      monthlyCashflow,
+      annualNet: effectiveRent - annualCharges,
+    };
+  }, [listing.price, monthlyRent, notaryRate, worksPercent, monthlyCharges, vacancyRate]);
+
+  const fmt = (n: number) => new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 0 }).format(n);
+
+  return (
+    <Card className="mb-4">
+      <CardHeader className="pb-2">
+        <CardTitle className="text-sm flex items-center gap-1.5">
+          <Calculator className="h-3.5 w-3.5" />
+          Simulateur de rentabilite
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {/* Inputs */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+          <SimInput label="Loyer mensuel" value={monthlyRent} onChange={setMonthlyRent} suffix="€" />
+          <SimInput label="Frais de notaire" value={notaryRate} onChange={setNotaryRate} suffix="%" />
+          <SimInput label="Travaux" value={worksPercent} onChange={setWorksPercent} suffix="%" />
+          <SimInput label="Charges/mois" value={monthlyCharges} onChange={setMonthlyCharges} suffix="€" />
+          <SimInput label="Vacance locative" value={vacancyRate} onChange={setVacancyRate} suffix="%" />
+        </div>
+
+        {/* Results */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2">
+          <ResultCard label="Investissement total" value={`${fmt(sim.totalInvestment)} €`} />
+          <ResultCard
+            label="Rendement brut"
+            value={`${sim.grossYield.toFixed(1)}%`}
+            highlight={sim.grossYield >= 4}
+          />
+          <ResultCard
+            label="Rendement net"
+            value={`${sim.netYield.toFixed(1)}%`}
+            highlight={sim.netYield >= 3}
+          />
+          <ResultCard
+            label="Cashflow/mois"
+            value={`${sim.monthlyCashflow >= 0 ? "+" : ""}${fmt(sim.monthlyCashflow)} €`}
+            highlight={sim.monthlyCashflow >= 0}
+            warn={sim.monthlyCashflow < 0}
+          />
+        </div>
+
+        {/* Breakdown */}
+        <div className="text-[11px] text-muted-foreground space-y-0.5 pt-1">
+          <p>Prix : {fmt(listing.price || 0)} € + Notaire : {fmt(sim.notaryFees)} € + Travaux : {fmt(sim.worksCost)} €</p>
+          <p>Revenu net annuel : {fmt(sim.annualNet)} €</p>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function SimInput({
+  label, value, onChange, suffix,
+}: {
+  label: string;
+  value: number;
+  onChange: (v: number) => void;
+  suffix: string;
+}) {
+  return (
+    <div>
+      <label className="block text-[11px] font-medium text-muted-foreground mb-1">{label}</label>
+      <div className="relative">
+        <Input
+          type="number"
+          value={value}
+          onChange={(e) => onChange(Number(e.target.value) || 0)}
+          className="h-8 text-sm pr-8"
+        />
+        <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
+          {suffix}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+function ResultCard({
+  label, value, highlight, warn,
+}: {
+  label: string;
+  value: string;
+  highlight?: boolean;
+  warn?: boolean;
+}) {
+  return (
+    <div className={cn(
+      "rounded-lg p-2.5 text-center",
+      warn ? "bg-destructive/10" : highlight ? "bg-green-50" : "bg-muted",
+    )}>
+      <div className={cn(
+        "text-sm font-semibold tabular-nums",
+        warn ? "text-destructive" : highlight ? "text-green-700" : "text-foreground",
+      )}>
+        {value}
+      </div>
+      <div className="text-[10px] text-muted-foreground mt-0.5">{label}</div>
+    </div>
   );
 }
