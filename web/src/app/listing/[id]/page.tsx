@@ -95,7 +95,7 @@ export default function ListingPage() {
       <PhotoGallery photos={listing.photos || []} title={listing.title} />
 
       {/* Header card */}
-      <Card className="mb-4">
+      <Card className="mb-4 border-0 shadow-sm rounded-2xl">
         <CardContent>
           <div className="flex items-start justify-between gap-3 mb-1">
             <h1 className="text-base font-semibold text-foreground">{listing.title}</h1>
@@ -129,15 +129,15 @@ export default function ListingPage() {
           </div>
 
           {/* Actions */}
-          <div className="flex gap-2.5">
-            <Button asChild className="flex-1">
+          <div className="flex gap-3">
+            <Button asChild className="flex-1 h-12 rounded-xl text-[15px] font-semibold">
               <a href={listing.url} target="_blank" rel="noopener noreferrer">
                 Voir l&apos;annonce
-                <ExternalLink className="h-3.5 w-3.5" />
+                <ExternalLink className="h-4 w-4" />
               </a>
             </Button>
-            <Button variant="outline" onClick={handleToggleFavorite}>
-              <Heart className={cn("h-3.5 w-3.5", isFavorite && "fill-current")} />
+            <Button variant="outline" className="h-12 rounded-xl px-5" onClick={handleToggleFavorite}>
+              <Heart className={cn("h-4 w-4", isFavorite && "fill-current text-red-500")} />
               {isFavorite ? "Favori" : "Ajouter"}
             </Button>
           </div>
@@ -145,7 +145,7 @@ export default function ListingPage() {
       </Card>
 
       {/* Details */}
-      <Card className="mb-4">
+      <Card className="mb-4 border-0 shadow-sm rounded-2xl">
         <CardHeader>
           <CardTitle className="text-sm">Details</CardTitle>
         </CardHeader>
@@ -179,7 +179,7 @@ export default function ListingPage() {
 
       {/* Score breakdown */}
       {details && details.total > 0 && (
-        <Card className="mb-4">
+        <Card className="mb-4 border-0 shadow-sm rounded-2xl">
           <CardHeader>
             <CardTitle className="text-sm">Score d&apos;opportunite</CardTitle>
           </CardHeader>
@@ -214,7 +214,7 @@ export default function ListingPage() {
 
       {/* Price history */}
       {priceHistory.length > 1 && (
-        <Card className="mb-4">
+        <Card className="mb-4 border-0 shadow-sm rounded-2xl">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm flex items-center gap-1.5">
               <ArrowUpRight className="h-3.5 w-3.5" />
@@ -272,7 +272,7 @@ export default function ListingPage() {
 
       {/* Description */}
       {listing.description && (
-        <Card className="mb-4">
+        <Card className="mb-4 border-0 shadow-sm rounded-2xl">
           <CardHeader>
             <CardTitle className="text-sm">Description</CardTitle>
           </CardHeader>
@@ -356,7 +356,7 @@ function RentabilitySimulator({ listing }: { listing: Listing }) {
   const fmt = (n: number) => new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 0 }).format(n);
 
   return (
-    <Card className="mb-4">
+    <Card className="mb-4 border-0 shadow-sm rounded-2xl">
       <CardHeader className="pb-2">
         <CardTitle className="text-sm flex items-center gap-1.5">
           <Calculator className="h-3.5 w-3.5" />

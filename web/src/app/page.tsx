@@ -44,10 +44,15 @@ function HomeContent() {
           onRetry={refresh}
         />
       ) : listings.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-20 gap-3">
-          <SearchX className="h-8 w-8 text-muted-foreground" />
-          <p className="text-sm text-muted-foreground">Aucune annonce ne correspond a vos criteres.</p>
-          <Button variant="link" size="sm" onClick={() => setFilters({
+        <div className="flex flex-col items-center justify-center py-24 gap-4">
+          <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center">
+            <SearchX className="h-7 w-7 text-muted-foreground" />
+          </div>
+          <div className="text-center">
+            <p className="text-sm font-medium text-foreground mb-1">Aucun resultat</p>
+            <p className="text-sm text-muted-foreground">Essayez d&apos;elargir vos criteres de recherche.</p>
+          </div>
+          <Button variant="outline" size="sm" className="rounded-xl" onClick={() => setFilters({
             minPriceSqm: null, maxPriceSqm: null,
             minSurface: null, maxSurface: null,
             minPrice: null, maxPrice: null,
@@ -58,7 +63,7 @@ function HomeContent() {
         </div>
       ) : (
         <>
-          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5">
             {listings.map((listing, i) => (
               <ListingCard
                 key={listing.id}
@@ -71,21 +76,23 @@ function HomeContent() {
           </div>
 
           {totalPages > 1 && (
-            <div className="flex items-center justify-center gap-1 mt-8">
+            <div className="flex items-center justify-center gap-2 mt-10 mb-4">
               <Button
                 variant="outline"
-                size="sm"
+                size="default"
+                className="h-10 rounded-xl min-w-[100px]"
                 onClick={prevPage}
                 disabled={page === 0}
               >
                 Precedent
               </Button>
-              <span className="px-4 py-1.5 text-sm text-muted-foreground tabular-nums">
+              <span className="px-5 py-2 text-sm text-muted-foreground tabular-nums font-medium">
                 {page + 1} / {totalPages}
               </span>
               <Button
                 variant="outline"
-                size="sm"
+                size="default"
+                className="h-10 rounded-xl min-w-[100px]"
                 onClick={nextPage}
                 disabled={page >= totalPages - 1}
               >

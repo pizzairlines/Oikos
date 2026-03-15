@@ -7,7 +7,6 @@ import { ScoreBadge } from "./ScoreBadge";
 import { formatPrice, formatPriceSqm, formatArrondissement, cn } from "@/lib/utils";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 
 interface ListingCardProps {
   listing: Listing;
@@ -19,43 +18,45 @@ interface ListingCardProps {
 export function ListingCard({ listing, isFavorite, onToggleFavorite, index = 0 }: ListingCardProps) {
   return (
     <Card
-      className="group overflow-hidden py-0 transition-shadow hover:shadow-md animate-card-enter"
-      style={{ animationDelay: `${Math.min(index * 50, 300)}ms` }}
+      className="group overflow-hidden py-0 border-0 shadow-sm hover:shadow-lg transition-all duration-300 animate-card-enter bg-card rounded-2xl"
+      style={{ animationDelay: `${Math.min(index * 60, 400)}ms` }}
     >
       {/* Image */}
-      <div className="relative aspect-[16/10] bg-muted overflow-hidden">
+      <div className="relative aspect-[4/3] bg-muted overflow-hidden">
         {listing.photos && listing.photos.length > 0 ? (
           <Image
             src={listing.photos[0]}
             alt={listing.title}
             fill
             sizes="(max-width: 640px) 100vw, (max-width: 1280px) 50vw, 33vw"
-            className="object-cover transition-transform duration-300 group-hover:scale-[1.02]"
+            className="object-cover transition-transform duration-500 group-hover:scale-105"
             loading="lazy"
           />
         ) : (
-          <div className="w-full h-full flex items-center justify-center">
-            <Layers className="h-6 w-6 text-muted-foreground" />
+          <div className="w-full h-full flex items-center justify-center bg-muted">
+            <Layers className="h-8 w-8 text-muted-foreground/40" />
           </div>
         )}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
-        <div className="absolute top-2.5 left-2.5">
-          <Badge variant="secondary" className="bg-white/90 text-foreground text-[10px] uppercase tracking-wide border-0 hover:bg-white/90">
+        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/5 to-transparent" />
+
+        {/* Source + Score badges */}
+        <div className="absolute top-3 left-3">
+          <Badge variant="secondary" className="bg-white/95 text-foreground text-[10px] font-semibold uppercase tracking-wider border-0 shadow-sm backdrop-blur-sm hover:bg-white/95">
             {SOURCE_LABELS[listing.source] || listing.source}
           </Badge>
         </div>
-        <div className="absolute top-2.5 right-2.5">
+        <div className="absolute top-3 right-3">
           <ScoreBadge score={listing.opportunity_score} />
         </div>
+
+        {/* Favorite button — larger touch target on mobile */}
         {onToggleFavorite && (
-          <Button
-            variant="ghost"
-            size="icon-sm"
+          <button
             className={cn(
-              "absolute bottom-2.5 right-2.5 rounded-full",
+              "absolute bottom-3 right-3 h-10 w-10 rounded-full flex items-center justify-center transition-all duration-200 active:scale-90",
               isFavorite
-                ? "bg-white text-foreground hover:bg-white/90"
-                : "bg-black/40 text-white hover:bg-black/60 hover:text-white"
+                ? "bg-white text-red-500 shadow-md"
+                : "bg-black/30 text-white/90 backdrop-blur-sm hover:bg-black/50"
             )}
             onClick={(e) => {
               e.preventDefault();
@@ -63,11 +64,13 @@ export function ListingCard({ listing, isFavorite, onToggleFavorite, index = 0 }
               onToggleFavorite(listing.id);
             }}
           >
-            <Heart className={cn("h-3.5 w-3.5", isFavorite && "fill-current")} />
-          </Button>
+            <Heart className={cn("h-[18px] w-[18px]", isFavorite && "fill-current")} />
+          </button>
         )}
-        <div className="absolute bottom-2.5 left-2.5">
-          <span className="text-sm font-semibold text-white">
+
+        {/* Price overlay */}
+        <div className="absolute bottom-3 left-3">
+          <span className="text-[17px] font-bold text-white drop-shadow-md">
             {formatPrice(listing.price)}
           </span>
         </div>
@@ -75,32 +78,32 @@ export function ListingCard({ listing, isFavorite, onToggleFavorite, index = 0 }
 
       {/* Content */}
       <a href={`/listing/${listing.id}`} className="block">
-        <CardContent className="p-3 sm:p-4">
-          <h3 className="text-sm font-medium text-foreground line-clamp-1 mb-1">
+        <CardContent className="px-4 py-3.5">
+          <h3 className="text-[15px] font-semibold text-foreground line-clamp-1 mb-1.5">
             {listing.title}
           </h3>
-          <div className="flex items-center gap-1 text-muted-foreground mb-2.5 sm:mb-3">
-            <MapPin className="h-3 w-3" />
-            <span className="text-xs">{formatArrondissement(listing.arrondissement)}</span>
+          <div className="flex items-center gap-1.5 text-muted-foreground mb-3">
+            <MapPin className="h-3.5 w-3.5 shrink-0" />
+            <span className="text-[13px]">{formatArrondissement(listing.arrondissement)}</span>
             {listing.seller_type === "particulier" && (
-              <span className="text-xs opacity-70 ml-1">&middot; Particulier</span>
+              <Badge variant="outline" className="text-[10px] font-normal ml-1 py-0 px-1.5 h-4 border-primary/30 text-primary">
+                Particulier
+              </Badge>
             )}
           </div>
-          <div className="flex items-center gap-3 sm:gap-4 text-xs">
+          <div className="flex items-center gap-4 text-[13px]">
+            {listing.surface && (
+              <div>
+                <span className="text-muted-foreground">Surface </span>
+                <span className="font-semibold text-foreground tabular-nums">{listing.surface} m&sup2;</span>
+              </div>
+            )}
             <div>
-              <span className="text-muted-foreground">Surface </span>
-              <span className="font-medium text-foreground tabular-nums">
-                {listing.surface ? `${listing.surface} m\u00b2` : "\u2014"}
-              </span>
-            </div>
-            <div>
-              <span className="text-muted-foreground">Prix/m\u00b2 </span>
-              <span className="font-medium text-foreground tabular-nums">
-                {formatPriceSqm(listing.price_per_sqm)}
-              </span>
+              <span className="text-muted-foreground">Prix/m&sup2; </span>
+              <span className="font-semibold text-foreground tabular-nums">{formatPriceSqm(listing.price_per_sqm)}</span>
             </div>
             {listing.rooms && (
-              <div className="text-muted-foreground">{listing.rooms}p</div>
+              <div className="text-muted-foreground tabular-nums">{listing.rooms}p</div>
             )}
           </div>
         </CardContent>

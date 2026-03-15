@@ -58,31 +58,32 @@ export function Filters({ filters, sortBy, onFiltersChange, onSortChange, totalC
   };
 
   return (
-    <div className="mb-6">
+    <div className="mb-6 sm:mb-8">
       {/* Top bar */}
-      <div className="flex items-center justify-between gap-3 mb-3">
+      <div className="flex items-center justify-between gap-3 mb-4">
         <div className="flex items-center gap-3">
           <Button
-            variant={expanded ? "secondary" : "outline"}
-            size="sm"
+            variant={expanded ? "default" : "outline"}
+            size="default"
+            className="h-10 rounded-xl px-4"
             onClick={() => setExpanded(!expanded)}
           >
-            <SlidersHorizontal className="h-3.5 w-3.5" />
+            <SlidersHorizontal className="h-4 w-4" />
             Filtres
             {hasActiveFilters && (
-              <span className="ml-1 h-1.5 w-1.5 rounded-full bg-foreground" />
+              <span className="ml-1.5 h-2 w-2 rounded-full bg-primary-foreground" />
             )}
           </Button>
           <span className="text-sm text-muted-foreground tabular-nums">
-            {totalCount} resultat{totalCount !== 1 ? "s" : ""}
+            {totalCount.toLocaleString("fr-FR")} annonce{totalCount !== 1 ? "s" : ""}
           </span>
         </div>
 
         {/* Sort */}
         <div className="flex items-center gap-1.5">
-          <ArrowUpDown className="h-3.5 w-3.5 text-muted-foreground" />
+          <ArrowUpDown className="h-3.5 w-3.5 text-muted-foreground hidden sm:block" />
           <Select value={sortBy} onValueChange={(v) => onSortChange(v as SortField)}>
-            <SelectTrigger className="h-8 w-[120px] border-0 shadow-none text-sm">
+            <SelectTrigger className="h-10 w-[130px] rounded-xl border-0 shadow-none text-sm font-medium">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -96,24 +97,24 @@ export function Filters({ filters, sortBy, onFiltersChange, onSortChange, totalC
 
       {/* Expandable filter panel */}
       {expanded && (
-        <Card className="animate-in fade-in slide-in-from-top-1 duration-200">
-          <CardContent className="space-y-4 pt-2">
+        <Card className="animate-fade-in-up border-0 shadow-md rounded-2xl">
+          <CardContent className="space-y-5 py-5">
             {/* Numeric filters */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-              <FilterInput label="Prix/m\u00b2 min" placeholder="5 000" value={filters.minPriceSqm} onChange={(v) => update({ minPriceSqm: v })} />
-              <FilterInput label="Prix/m\u00b2 max" placeholder="7 500" value={filters.maxPriceSqm} onChange={(v) => update({ maxPriceSqm: v })} />
-              <FilterInput label="Surface min" placeholder="20 m\u00b2" value={filters.minSurface} onChange={(v) => update({ minSurface: v })} />
-              <FilterInput label="Surface max" placeholder="100 m\u00b2" value={filters.maxSurface} onChange={(v) => update({ maxSurface: v })} />
+              <FilterInput label="Prix/m² min" placeholder="5 000" value={filters.minPriceSqm} onChange={(v) => update({ minPriceSqm: v })} />
+              <FilterInput label="Prix/m² max" placeholder="7 500" value={filters.maxPriceSqm} onChange={(v) => update({ maxPriceSqm: v })} />
+              <FilterInput label="Surface min" placeholder="20 m²" value={filters.minSurface} onChange={(v) => update({ minSurface: v })} />
+              <FilterInput label="Surface max" placeholder="100 m²" value={filters.maxSurface} onChange={(v) => update({ maxSurface: v })} />
               <FilterInput label="Budget min" placeholder="100 000" value={filters.minPrice} onChange={(v) => update({ minPrice: v })} />
               <FilterInput label="Budget max" placeholder="500 000" value={filters.maxPrice} onChange={(v) => update({ maxPrice: v })} />
 
               <div>
-                <label className="block text-xs font-medium text-muted-foreground mb-1.5">Pieces</label>
+                <label className="block text-xs font-medium text-muted-foreground mb-2">Pieces</label>
                 <Select
                   value={filters.rooms ? String(filters.rooms) : "all"}
                   onValueChange={(v) => update({ rooms: v === "all" ? null : Number(v) })}
                 >
-                  <SelectTrigger className="h-9 text-sm">
+                  <SelectTrigger className="h-11 text-sm rounded-xl">
                     <SelectValue placeholder="Toutes" />
                   </SelectTrigger>
                   <SelectContent>
@@ -127,12 +128,12 @@ export function Filters({ filters, sortBy, onFiltersChange, onSortChange, totalC
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-muted-foreground mb-1.5">Source</label>
+                <label className="block text-xs font-medium text-muted-foreground mb-2">Source</label>
                 <Select
                   value={filters.source ?? "all"}
                   onValueChange={(v) => update({ source: v === "all" ? null : v })}
                 >
-                  <SelectTrigger className="h-9 text-sm">
+                  <SelectTrigger className="h-11 text-sm rounded-xl">
                     <SelectValue placeholder="Toutes" />
                   </SelectTrigger>
                   <SelectContent>
@@ -147,15 +148,18 @@ export function Filters({ filters, sortBy, onFiltersChange, onSortChange, totalC
 
             {/* Arrondissements */}
             <div>
-              <label className="block text-xs font-medium text-muted-foreground mb-2">Arrondissements</label>
-              <div className="flex flex-wrap gap-1.5">
+              <label className="block text-xs font-medium text-muted-foreground mb-2.5">Arrondissements</label>
+              <div className="flex flex-wrap gap-2">
                 {ARRONDISSEMENTS.map((arr) => {
                   const isSelected = filters.arrondissements.includes(arr.value);
                   return (
-                    <Button
+                    <button
                       key={arr.value}
-                      variant={isSelected ? "default" : "outline"}
-                      size="xs"
+                      className={`h-9 min-w-9 px-3 rounded-full text-sm font-medium transition-all duration-150 ${
+                        isSelected
+                          ? "bg-primary text-primary-foreground shadow-sm"
+                          : "bg-muted text-muted-foreground hover:bg-muted/80"
+                      }`}
                       onClick={() => {
                         const next = isSelected
                           ? filters.arrondissements.filter((a) => a !== arr.value)
@@ -164,7 +168,7 @@ export function Filters({ filters, sortBy, onFiltersChange, onSortChange, totalC
                       }}
                     >
                       {arr.label.replace("Paris ", "")}
-                    </Button>
+                    </button>
                   );
                 })}
               </div>
@@ -172,9 +176,9 @@ export function Filters({ filters, sortBy, onFiltersChange, onSortChange, totalC
 
             {/* Reset */}
             {hasActiveFilters && (
-              <Button variant="ghost" size="sm" onClick={resetFilters}>
-                <X className="h-3 w-3" />
-                Reinitialiser
+              <Button variant="ghost" size="sm" onClick={resetFilters} className="text-destructive hover:text-destructive">
+                <X className="h-3.5 w-3.5" />
+                Reinitialiser les filtres
               </Button>
             )}
           </CardContent>
@@ -194,13 +198,13 @@ function FilterInput({
 }) {
   return (
     <div>
-      <label className="block text-xs font-medium text-muted-foreground mb-1.5">{label}</label>
+      <label className="block text-xs font-medium text-muted-foreground mb-2">{label}</label>
       <Input
         type="number"
         placeholder={placeholder}
         value={value ?? ""}
         onChange={(e) => onChange(e.target.value ? Number(e.target.value) : null)}
-        className="h-9 text-sm"
+        className="h-11 text-sm rounded-xl"
       />
     </div>
   );

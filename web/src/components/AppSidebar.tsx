@@ -1,7 +1,7 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import { Building2, Heart, Bell, Search, BarChart3, Map } from "lucide-react";
+import { Building2, Heart, Bell, Search, BarChart3 } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -16,7 +16,6 @@ import {
 
 const NAV_ITEMS = [
   { href: "/", label: "Annonces", icon: Search },
-  { href: "/map", label: "Carte", icon: Map },
   { href: "/stats", label: "Statistiques", icon: BarChart3 },
   { href: "/favorites", label: "Favoris", icon: Heart },
   { href: "/settings", label: "Alertes", icon: Bell },
