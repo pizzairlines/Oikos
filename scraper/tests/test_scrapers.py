@@ -199,44 +199,30 @@ class TestLeBonCoinParser:
         listing = self.scraper._parse_ad(ad)
         assert "999" in listing.url
 
-    def test_parse_next_data_path1(self):
-        data = {
-            "props": {
-                "pageProps": {
-                    "initialProps": {
-                        "searchData": {
-                            "ads": [{"list_id": 1}, {"list_id": 2}]
-                        }
-                    }
-                }
-            }
-        }
-        ads = self.scraper._parse_next_data_ads(data)
-        assert len(ads) == 2
+    def test_build_search_payload_page1(self):
+        payload = self.scraper._build_search_payload(1)
+        assert payload["offset"] == 0
+        assert payload["limit"] == 35
+        assert payload["filters"]["category"]["id"] == "9"
+        assert "2" in payload["filters"]["enums"]["real_estate_type"]
 
-    def test_parse_next_data_path2(self):
-        data = {
-            "props": {
-                "pageProps": {
-                    "searchData": {
-                        "ads": [{"list_id": 3}]
-                    }
-                }
-            }
-        }
-        ads = self.scraper._parse_next_data_ads(data)
-        assert len(ads) == 1
+    def test_build_search_payload_page2(self):
+        payload = self.scraper._build_search_payload(2)
+        assert payload["offset"] == 35
+        assert payload["sort_by"] == "time"
 
-    def test_parse_next_data_empty(self):
-        ads = self.scraper._parse_next_data_ads({})
-        assert ads == []
+    def test_build_search_payload_has_paris_location(self):
+        payload = self.scraper._build_search_payload(1)
+        locations = payload["filters"]["location"]["locations"]
+        assert len(locations) == 1
+        assert locations[0]["city"] == "Paris"
+        assert locations[0]["department_id"] == "75"
 
-    def test_build_search_url_contains_params(self):
-        url = self.scraper._build_search_url(2)
-        assert "category=9" in url
-        assert "page=2" in url
-        assert "Paris" in url
-        assert "real_estate_type=2" in url
+    def test_build_search_payload_apartment_only(self):
+        payload = self.scraper._build_search_payload(1)
+        enums = payload["filters"]["enums"]
+        assert "2" in enums["real_estate_type"]  # Appartement
+        assert "offer" in enums["ad_type"]
 
 
 class TestGetAttribute:

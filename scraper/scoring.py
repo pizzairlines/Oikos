@@ -1,10 +1,10 @@
 """Opportunity scoring engine for real estate listings.
 
 Score breakdown (0-100):
-- Price score (40%): How far below market median the price/m² is
+- Price score (35%): How far below market median the price/m² is
 - Location score (20%): Rental attractiveness of the arrondissement
 - Size score (15%): Optimal rental sizes (studios, 2P)
-- Condition score (15%): DPE, floor, elevator
+- Condition score (20%): DPE, floor, elevator, keywords
 - Liquidity score (10%): Market liquidity for resale/rental
 """
 
@@ -37,9 +37,10 @@ OPTIMAL_RANGES = [
 ]
 
 # DPE scores (higher = better)
+# F and G are heavily penalized: rental ban since 2025 (F) and 2028 (E planned)
 DPE_SCORES = {
-    "A": 100, "B": 90, "C": 75, "D": 60,
-    "E": 40, "F": 15, "G": 0,
+    "A": 100, "B": 90, "C": 75, "D": 55,
+    "E": 30, "F": 5, "G": 0,
 }
 
 # Keywords indicating potential issues (in description/title)
@@ -59,9 +60,14 @@ PENALTY_KEYWORDS = {
 
 
 def compute_price_score(price_per_sqm: float, arrondissement: str | None) -> float:
-    """Score based on how far below market median the price is (0-100)."""
+    """Score based on how far below market median the price is (0-100).
+
+    Uses a two-tier curve:
+    - 0-20% below median: gradual ramp (0 → 50)
+    - 20-50%+ below median: steeper ramp (50 → 100)
+    This prevents all cheap-arrondissement listings from clustering at 100.
+    """
     if not arrondissement or arrondissement not in config.arrondissement_median_prices:
-        # Use Paris-wide average if arrondissement unknown
         median = 10000
     else:
         median = config.arrondissement_median_prices[arrondissement]
@@ -69,10 +75,15 @@ def compute_price_score(price_per_sqm: float, arrondissement: str | None) -> flo
     if price_per_sqm >= median:
         return 0.0
 
-    # Percentage below median
     discount_pct = (median - price_per_sqm) / median * 100
-    # Cap at 100 (more than 50% below median is likely an error)
-    return min(discount_pct * 2, 100.0)
+
+    if discount_pct <= 20:
+        # 0-20% discount → 0-50 score (2.5 points per %)
+        return discount_pct * 2.5
+    else:
+        # 20-50% discount → 50-100 score (~1.67 points per %)
+        extra = discount_pct - 20
+        return min(50 + extra * (50 / 30), 100.0)
 
 
 def compute_location_score(arrondissement: str | None) -> float:
@@ -188,10 +199,10 @@ def compute_opportunity_score(listing: dict) -> tuple[float, dict]:
 
     # Weighted total
     total = (
-        price * 0.40
+        price * 0.35
         + location * 0.20
         + size * 0.15
-        + condition * 0.15
+        + condition * 0.20
         + liquidity * 0.10
     )
 

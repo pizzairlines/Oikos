@@ -17,9 +17,16 @@ from scoring import (
 
 class TestPriceScore:
     def test_well_below_median_gives_high_score(self):
-        # 75011 median = 10_000, price = 6_000 → 40% below → score = 80
+        # 75011 median = 10_000, price = 6_000 → 40% below
+        # Two-tier: 50 + (40-20)*(50/30) ≈ 83.3
         score = compute_price_score(6_000, "75011")
-        assert score == pytest.approx(80.0)
+        assert score == pytest.approx(83.3, abs=0.1)
+
+    def test_moderate_discount_in_first_tier(self):
+        # 75011 median = 10_000, price = 9_000 → 10% below
+        # First tier: 10 * 2.5 = 25
+        score = compute_price_score(9_000, "75011")
+        assert score == pytest.approx(25.0)
 
     def test_at_median_gives_zero(self):
         score = compute_price_score(10_000, "75011")
@@ -30,16 +37,17 @@ class TestPriceScore:
         assert score == 0.0
 
     def test_unknown_arrondissement_uses_default_median(self):
-        # Default median = 10_000
+        # Default median = 10_000, price = 7_000 → 30% below
+        # Two-tier: 50 + (30-20)*(50/30) ≈ 66.7
         score = compute_price_score(7_000, None)
-        assert score == pytest.approx(60.0)
+        assert score == pytest.approx(66.7, abs=0.1)
 
     def test_unknown_arrondissement_string(self):
         score = compute_price_score(7_000, "99999")
-        assert score == pytest.approx(60.0)
+        assert score == pytest.approx(66.7, abs=0.1)
 
     def test_very_low_price_capped_at_100(self):
-        # 75019 median = 8_000, price = 1_000 → 87.5% below → raw = 175 → cap at 100
+        # 75019 median = 8_000, price = 1_000 → 87.5% below → cap at 100
         score = compute_price_score(1_000, "75019")
         assert score == 100.0
 
@@ -48,6 +56,12 @@ class TestPriceScore:
             for arr in ["75001", "75011", "75020", None, "unknown"]:
                 score = compute_price_score(price, arr)
                 assert 0 <= score <= 100, f"price={price}, arr={arr}, score={score}"
+
+    def test_two_tier_boundary(self):
+        # At exactly 20% discount: 20 * 2.5 = 50
+        # 75011 median = 10_000, price = 8_000 → 20% below
+        score = compute_price_score(8_000, "75011")
+        assert score == pytest.approx(50.0)
 
 
 # ---------------------------------------------------------------------------
@@ -242,7 +256,7 @@ class TestOpportunityScore:
 
     def test_weights_sum_to_1(self):
         """Verify the weights in the scoring formula add up to 1.0."""
-        assert 0.40 + 0.20 + 0.15 + 0.15 + 0.10 == pytest.approx(1.0)
+        assert 0.35 + 0.20 + 0.15 + 0.20 + 0.10 == pytest.approx(1.0)
 
     def test_best_possible_listing(self):
         """A dream listing should score very high."""
