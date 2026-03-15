@@ -55,11 +55,22 @@ async def run_scraper(name: str) -> list[dict]:
         logger.error(f"Unknown scraper: {name}")
         return []
 
-    scraper = scraper_class()
-    raw_listings = await scraper.run()
+    # Record scraper run start
+    run_id = db.record_scraper_start(name)
+
+    import time
+    t0 = time.monotonic()
+
+    try:
+        scraper = scraper_class()
+        raw_listings = await scraper.run()
+    except Exception as e:
+        db.record_scraper_end(run_id, "error", error_message=str(e))
+        raise
 
     if not raw_listings:
         logger.info(f"[{name}] No valid listings found")
+        db.record_scraper_end(run_id, "success", duration=time.monotonic() - t0)
         return []
 
     # Get existing IDs to track what's new
@@ -108,10 +119,20 @@ async def run_scraper(name: str) -> list[dict]:
             if raw.source_id not in existing_ids:
                 stored_listings.append(result)
 
+    duration = time.monotonic() - t0
     logger.info(
         f"[{name}] Stored {len(raw_listings) - skipped} listings "
-        f"({skipped} skipped), {len(stored_listings)} new"
+        f"({skipped} skipped), {len(stored_listings)} new — {duration:.1f}s"
     )
+
+    db.record_scraper_end(
+        run_id, "success",
+        listings_found=len(raw_listings),
+        listings_new=len(stored_listings),
+        listings_skipped=skipped,
+        duration=duration,
+    )
+
     return stored_listings
 
 

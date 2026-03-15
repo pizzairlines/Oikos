@@ -172,3 +172,51 @@ def get_sent_alert_listing_ids(alert_config_id: str) -> set[str]:
         .execute()
     )
     return {row["listing_id"] for row in result.data}
+
+
+# ── Scraper run tracking ──
+
+def record_scraper_start(scraper_name: str) -> str | None:
+    """Record the start of a scraper run. Returns the run ID."""
+    try:
+        client = get_client()
+        result = (
+            client.table("scraper_runs")
+            .insert({"scraper_name": scraper_name, "status": "running"})
+            .execute()
+        )
+        if result.data:
+            return result.data[0]["id"]
+    except Exception as e:
+        logger.debug(f"[db] Failed to record scraper start: {e}")
+    return None
+
+
+def record_scraper_end(
+    run_id: str | None,
+    status: str,
+    listings_found: int = 0,
+    listings_new: int = 0,
+    listings_skipped: int = 0,
+    error_message: str | None = None,
+    duration: float | None = None,
+) -> None:
+    """Record the end of a scraper run."""
+    if not run_id:
+        return
+    try:
+        client = get_client()
+        update: dict[str, Any] = {
+            "status": status,
+            "finished_at": datetime.now(timezone.utc).isoformat(),
+            "listings_found": listings_found,
+            "listings_new": listings_new,
+            "listings_skipped": listings_skipped,
+        }
+        if error_message:
+            update["error_message"] = error_message[:500]
+        if duration is not None:
+            update["duration_seconds"] = round(duration, 1)
+        client.table("scraper_runs").update(update).eq("id", run_id).execute()
+    except Exception as e:
+        logger.debug(f"[db] Failed to record scraper end: {e}")

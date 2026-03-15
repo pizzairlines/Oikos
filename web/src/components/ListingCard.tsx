@@ -6,6 +6,11 @@ import { Listing, SOURCE_LABELS } from "@/lib/types";
 import { ScoreBadge } from "./ScoreBadge";
 import { formatPrice, formatPriceSqm, formatArrondissement, cn } from "@/lib/utils";
 
+const DAY_MS = 24 * 60 * 60 * 1000;
+function isNew(createdAt: string): boolean {
+  return Date.now() - new Date(createdAt).getTime() < DAY_MS;
+}
+
 interface ListingCardProps {
   listing: Listing;
   isFavorite?: boolean;
@@ -37,11 +42,16 @@ export function ListingCard({ listing, isFavorite, onToggleFavorite, index = 0 }
         )}
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/5 to-transparent" />
 
-        {/* Source badge — frosted glass */}
-        <div className="absolute top-3 left-3">
+        {/* Source + New badge — frosted glass */}
+        <div className="absolute top-3 left-3 flex items-center gap-1.5">
           <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-semibold uppercase tracking-wider text-white/95 bg-white/20 backdrop-blur-md border border-white/20">
             {SOURCE_LABELS[listing.source] || listing.source}
           </span>
+          {isNew(listing.created_at) && (
+            <span className="inline-flex items-center px-2 py-1 rounded-full text-[10px] font-semibold uppercase tracking-wider text-white bg-emerald-500/90 backdrop-blur-md">
+              Nouveau
+            </span>
+          )}
         </div>
         <div className="absolute top-3 right-3">
           <ScoreBadge score={listing.opportunity_score} />

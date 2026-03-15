@@ -236,6 +236,21 @@ export async function fetchStats(): Promise<StatsData> {
     return buildStats(MOCK_LISTINGS.filter((l) => l.is_active));
   }
 
+  // Try server-side RPC first (fast, single query)
+  try {
+    const { data: rpcData, error } = await supabase.rpc("get_listing_stats");
+    if (!error && rpcData) {
+      const s = rpcData as StatsData;
+      // Validate shape — RPC returns camelCase JSON matching StatsData
+      if (typeof s.totalListings === "number" && Array.isArray(s.byArrondissement)) {
+        return s;
+      }
+    }
+  } catch {
+    // RPC not deployed yet — fall through to client-side
+  }
+
+  // Fallback: client-side aggregation
   const { data } = await supabase
     .from("listings")
     .select(STATS_FIELDS)
@@ -293,15 +308,14 @@ function buildStats(listings: StatsListing[]): StatsData {
     }))
     .sort((a, b) => a.arr.localeCompare(b.arr));
 
-  // Price distribution (€/m²)
+  // Price distribution (€/m²) — aligned with 8500 max filter
   const priceRanges = [
-    { label: "< 6k", min: 0, max: 6000 },
+    { label: "< 5k", min: 0, max: 5000 },
+    { label: "5-6k", min: 5000, max: 6000 },
     { label: "6-7k", min: 6000, max: 7000 },
     { label: "7-8k", min: 7000, max: 8000 },
-    { label: "8-9k", min: 8000, max: 9000 },
-    { label: "9-10k", min: 9000, max: 10000 },
-    { label: "10-12k", min: 10000, max: 12000 },
-    { label: "> 12k", min: 12000, max: Infinity },
+    { label: "8-8.5k", min: 8000, max: 8500 },
+    { label: "> 8.5k", min: 8500, max: Infinity },
   ];
   const priceDistribution = priceRanges.map((r) => ({
     range: r.label,
