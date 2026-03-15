@@ -24,8 +24,8 @@ class Config:
     request_delay_max: float = 5.0
 
     # Filtering
-    default_min_price_sqm: float = 5000
-    default_max_price_sqm: float = 7500
+    default_min_price_sqm: float = 0
+    default_max_price_sqm: float = 8500
     target_city: str = "paris"
 
     # Paris arrondissement median prices (€/m², approximate 2024-2025)

@@ -89,6 +89,13 @@ async def run_scraper(name: str) -> list[dict]:
                 f"{', '.join(validation.warnings)}"
             )
 
+        # Filter by max price per sqm
+        price_per_sqm = listing_data.get("price_per_sqm")
+        if price_per_sqm and config.default_max_price_sqm:
+            if price_per_sqm > config.default_max_price_sqm:
+                skipped += 1
+                continue
+
         # Compute opportunity score
         score, details = compute_opportunity_score(listing_data)
         listing_data["opportunity_score"] = score
