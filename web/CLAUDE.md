@@ -137,9 +137,37 @@ const [data, favIds, history] = await Promise.all([
 ### Error handling
 Every page has three states: loading (skeleton), error (ErrorState with retry), empty (illustration + message + action button).
 
+## Common mistakes — don't repeat these
+
+| Mistake | Fix |
+|---------|-----|
+| Import `Card` from shadcn in a page | Use `<div className="glass rounded-2xl">` |
+| `p-5` on both header and content divs | Header: `px-5 pt-5 pb-3`, Content: `px-5 pb-5` |
+| Button default looks purple | Default is black (`bg-foreground`). Purple is for accents only. |
+| `count: "exact"` on Supabase query | Use `count: "planned"` — 10x faster |
+| `select("*")` for grid listings | Use `CARD_FIELDS` constant — skip `description`, `photos` |
+| Toast hidden behind bottom nav | Toast position: `bottom-20 md:bottom-4` |
+| Missing Safari prefix | Always pair `backdrop-filter` with `-webkit-backdrop-filter` |
+| Hardcoded French text with typos | Double-check accents: é, è, ê, à, ç |
+
+## New component checklist
+
+When creating a new component:
+
+- [ ] Uses glass classes (not Card)
+- [ ] Has loading skeleton variant
+- [ ] Has error state
+- [ ] Has empty state (if applicable)
+- [ ] Touch targets ≥ 40px
+- [ ] Works at 375px
+- [ ] Animations: `animate-card-enter` or `animate-fade-in-up`
+- [ ] French user-facing text
+- [ ] All Supabase calls go through `data.ts`
+
 ## Before committing
 
 1. `npx tsc --noEmit` — must pass
 2. Check mobile layout (375px width)
 3. Verify glass consistency — no raw Card imports in pages
 4. French for all user-facing text
+5. Check the three states: loading, error, empty

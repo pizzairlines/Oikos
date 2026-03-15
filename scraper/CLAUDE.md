@@ -114,9 +114,35 @@ Median prices (€/m², 2024-2025) and rental attractiveness (0-100) are in `con
 - Sweet spot: 9-11e, 18-20e — lower price, high rental attractiveness (best scores)
 - Expensive & low yield: 6e, 16e — high price, low rental demand
 
+## Common mistakes — don't repeat these
+
+| Mistake | Fix |
+|---------|-----|
+| `listing["surface"]` without null check | `listing.get("surface")` + validate before math |
+| `price / surface` without guard | `if surface and surface > 0:` |
+| No delay between requests | `await asyncio.sleep(random.uniform(2, 5))` |
+| One page error kills the whole scrape | Wrap each page in try/except, log and continue |
+| Hardcoded arrondissement prices | Use `config.arrondissement_median_prices` |
+| Duplicate listings across sources | Upsert with `(source, source_id)` conflict key |
+| Changed scoring without running tests | Always `pytest tests/test_scoring.py` first |
+
+## Adding a new scraper
+
+When adding a new source (e.g., SeLoger):
+
+1. Create `scrapers/seloger.py` following the existing scraper pattern
+2. Implement `async def scrape() -> list[dict]`
+3. Each listing dict must have: `source`, `source_id`, `url`, `title` (minimum)
+4. All other fields are optional (the validator handles nulls)
+5. Add to the scheduler in `main.py`
+6. Add tests in `tests/test_seloger.py`
+7. Add rate limiting (never < 2 seconds between requests)
+
 ## Before committing
 
 1. `pytest` — all tests pass
-2. Validate with real data if scoring changed
-3. Check rate limiting is in place
-4. No secrets in code (use env vars)
+2. `pytest -x` — stop on first failure for quick iteration
+3. Validate with real data if scoring changed
+4. Check rate limiting is in place
+5. No secrets in code (use env vars)
+6. Update this CLAUDE.md if you add new patterns
