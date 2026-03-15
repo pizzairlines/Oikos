@@ -1,36 +1,39 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import { Search, BarChart3, Heart, Bell } from "lucide-react";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Separator } from "@/components/ui/separator";
 
-const PAGE_META: Record<string, { title: string; icon: React.ElementType }> = {
-  "/": { title: "Annonces", icon: Search },
-  "/stats": { title: "Statistiques", icon: BarChart3 },
-  "/favorites": { title: "Favoris", icon: Heart },
-  "/settings": { title: "Alertes", icon: Bell },
+const BREADCRUMBS: Record<string, string[]> = {
+  "/": ["Annonces", "Explorer"],
+  "/stats": ["Statistiques"],
+  "/favorites": ["Favoris"],
+  "/settings": ["Alertes"],
 };
 
 export function DesktopHeader() {
   const pathname = usePathname();
 
-  // Match page or fall back for dynamic routes like /listing/[id]
-  const meta = PAGE_META[pathname];
-
-  // Don't render on detail pages — they have their own back button
-  if (!meta) return null;
-
-  const Icon = meta.icon;
+  // Build breadcrumb — dynamic routes like /listing/[id]
+  const isDetail = pathname.startsWith("/listing/");
+  const crumbs = isDetail
+    ? ["Annonces", "Detail"]
+    : BREADCRUMBS[pathname] || ["Oikos"];
 
   return (
-    <header className="hidden md:flex items-center gap-3 h-14 px-6 border-b border-border/50 shrink-0">
-      <SidebarTrigger className="h-7 w-7" />
-      <Separator orientation="vertical" className="h-4" />
-      <div className="flex items-center gap-2">
-        <Icon className="h-4 w-4 text-muted-foreground" />
-        <h1 className="text-sm font-medium text-foreground">{meta.title}</h1>
-      </div>
+    <header className="hidden md:flex items-center h-12 px-4 border-b border-border/40 shrink-0 bg-background">
+      <SidebarTrigger className="h-7 w-7 text-muted-foreground" />
+      <Separator orientation="vertical" className="mx-3 h-4" />
+      <nav className="flex items-center gap-1.5 text-sm">
+        {crumbs.map((crumb, i) => (
+          <span key={i} className="flex items-center gap-1.5">
+            {i > 0 && <span className="text-muted-foreground/50">&rsaquo;</span>}
+            <span className={i === crumbs.length - 1 ? "text-foreground font-medium" : "text-muted-foreground"}>
+              {crumb}
+            </span>
+          </span>
+        ))}
+      </nav>
     </header>
   );
 }
