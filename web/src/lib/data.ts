@@ -12,6 +12,12 @@ let mockFavoriteIds = new Set<string>();
 let mockAlerts = [...MOCK_ALERT_CONFIGS];
 let mockAlertCounter = 0;
 
+// ── Lightweight listing type for cards (no description, limited photos) ──
+
+// Select only the fields needed for listing cards — excludes description,
+// floor, has_elevator, charges, published_at, updated_at, is_active
+const CARD_FIELDS = "id,source,source_id,url,title,price,surface,price_per_sqm,rooms,arrondissement,dpe,seller_type,opportunity_score,score_details,created_at,photos";
+
 // ── Listings ──
 
 export async function fetchListings(
@@ -59,7 +65,7 @@ export async function fetchListings(
 
   let query = supabase
     .from("listings")
-    .select("id,source,source_id,url,title,price,surface,price_per_sqm,rooms,arrondissement,dpe,seller_type,opportunity_score,score_details,created_at,photos", { count: "exact" })
+    .select(CARD_FIELDS, { count: "planned" })
     .eq("is_active", true);
 
   if (filters.minPriceSqm) query = query.gte("price_per_sqm", filters.minPriceSqm);
@@ -119,11 +125,11 @@ export async function fetchFavoriteListings(): Promise<{ listings: Listing[]; id
   const ids = new Set(favs.map((f) => f.listing_id));
   const { data } = await supabase
     .from("listings")
-    .select("*")
+    .select(CARD_FIELDS)
     .in("id", Array.from(ids))
     .order("opportunity_score", { ascending: false });
 
-  return { listings: data || [], ids };
+  return { listings: (data as unknown as Listing[]) || [], ids };
 }
 
 export async function toggleFavorite(listingId: string, currentlyFavorite: boolean): Promise<boolean> {
@@ -219,8 +225,11 @@ export interface StatsData {
   byArrondissement: { arr: string; count: number; avgPriceSqm: number; avgScore: number }[];
   priceDistribution: { range: string; count: number }[];
   scoreDistribution: { range: string; count: number }[];
-  topOpportunities: Listing[];
+  topOpportunities: { id: string; title: string; arrondissement: string | null; price_per_sqm: number | null; surface: number | null; opportunity_score: number }[];
 }
+
+// Only fetch the numeric fields needed for stats — NO photos, NO description, NO score_details
+const STATS_FIELDS = "id,title,price,surface,price_per_sqm,rooms,arrondissement,opportunity_score";
 
 export async function fetchStats(): Promise<StatsData> {
   if (isMock) {
@@ -229,13 +238,25 @@ export async function fetchStats(): Promise<StatsData> {
 
   const { data } = await supabase
     .from("listings")
-    .select("id,price,surface,price_per_sqm,rooms,arrondissement,opportunity_score,score_details,title,url,source,source_id,seller_type,dpe,created_at,photos")
+    .select(STATS_FIELDS)
     .eq("is_active", true);
 
-  return buildStats((data as unknown as Listing[]) || []);
+  return buildStats((data as unknown as StatsListing[]) || []);
 }
 
-function buildStats(listings: Listing[]): StatsData {
+// Lightweight type for stats computation
+interface StatsListing {
+  id: string;
+  title: string;
+  price: number | null;
+  surface: number | null;
+  price_per_sqm: number | null;
+  rooms: number | null;
+  arrondissement: string | null;
+  opportunity_score: number;
+}
+
+function buildStats(listings: StatsListing[]): StatsData {
   const valid = listings.filter((l) => l.price_per_sqm && l.price_per_sqm > 0);
 
   // Averages
@@ -303,7 +324,15 @@ function buildStats(listings: Listing[]): StatsData {
   // Top 5
   const topOpportunities = [...valid]
     .sort((a, b) => b.opportunity_score - a.opportunity_score)
-    .slice(0, 5);
+    .slice(0, 5)
+    .map((l) => ({
+      id: l.id,
+      title: l.title,
+      arrondissement: l.arrondissement,
+      price_per_sqm: l.price_per_sqm,
+      surface: l.surface,
+      opportunity_score: l.opportunity_score,
+    }));
 
   return {
     totalListings,

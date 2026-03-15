@@ -36,9 +36,10 @@ interface UseListingsReturn {
   refresh: () => void;
 }
 
-// Simple in-memory cache to avoid refetching on navigation
+// In-memory cache with stale-while-revalidate
 const cache = new Map<string, { data: Listing[]; count: number; ts: number }>();
-const CACHE_TTL = 30_000; // 30 seconds
+const CACHE_TTL = 60_000; // 1 minute — serve fresh from cache
+const STALE_TTL = 300_000; // 5 minutes — serve stale while revalidating in background
 
 function getCacheKey(filters: Filters, sortBy: SortField, page: number) {
   return JSON.stringify({ filters, sortBy, page });
@@ -106,9 +107,10 @@ export function useListings(): UseListingsReturn {
   const load = useCallback(async () => {
     const key = getCacheKey(filters, sortBy, page);
     const cached = cache.get(key);
+    const age = cached ? Date.now() - cached.ts : Infinity;
 
-    // Use cache if fresh (< 30s old)
-    if (cached && Date.now() - cached.ts < CACHE_TTL) {
+    // Fresh cache — serve immediately, no network call
+    if (cached && age < CACHE_TTL) {
       setListings(cached.data);
       setTotalCount(cached.count);
       setLoading(false);
@@ -116,6 +118,22 @@ export function useListings(): UseListingsReturn {
       return;
     }
 
+    // Stale cache — serve immediately but revalidate in the background
+    if (cached && age < STALE_TTL) {
+      setListings(cached.data);
+      setTotalCount(cached.count);
+      setLoading(false);
+      setError(false);
+      // Background revalidation
+      fetchListings(filters, sortBy, page, PAGE_SIZE).then(({ data, count }) => {
+        cache.set(key, { data, count, ts: Date.now() });
+        setListings(data);
+        setTotalCount(count);
+      }).catch(() => { /* stale data still displayed */ });
+      return;
+    }
+
+    // No cache — full loading state
     setLoading(true);
     setError(false);
     try {

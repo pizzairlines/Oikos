@@ -31,14 +31,16 @@ export default function ListingPage() {
     setLoading(true);
     setError(false);
     try {
-      const data = await fetchListingById(params.id as string);
+      const id = params.id as string;
+      // Fire all 3 requests in parallel
+      const [data, favIds, history] = await Promise.all([
+        fetchListingById(id),
+        fetchFavoriteIds(),
+        fetchPriceHistory(id),
+      ]);
       setListing(data);
-      const favIds = await fetchFavoriteIds();
-      setIsFavorite(favIds.has(params.id as string));
-      if (data) {
-        const history = await fetchPriceHistory(data.id);
-        setPriceHistory(history);
-      }
+      setIsFavorite(favIds.has(id));
+      setPriceHistory(history);
     } catch {
       setError(true);
     } finally {
