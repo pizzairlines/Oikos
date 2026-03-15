@@ -1,0 +1,9 @@
+# Fallback config if Railway doesn't use Docker
+[phases.setup]
+nixPkgs = ["python311", "playwright-driver.browsers"]
+
+[phases.install]
+cmds = ["pip install -r requirements.txt", "playwright install chromium --with-deps"]
+
+[start]
+cmd = "python main.py"
