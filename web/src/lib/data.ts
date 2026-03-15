@@ -57,9 +57,12 @@ export async function fetchListings(
     return { data: items.slice(from, from + pageSize), count };
   }
 
+  // Only select columns needed for listing cards (skip description, photos for speed)
+  const listColumns = "id,source,source_id,url,title,price,surface,price_per_sqm,rooms,arrondissement,dpe,seller_type,opportunity_score,score_details,created_at,photos";
+
   let query = supabase
     .from("listings")
-    .select("*", { count: "exact" })
+    .select(listColumns, { count: "exact" })
     .eq("is_active", true);
 
   if (filters.minPriceSqm) query = query.gte("price_per_sqm", filters.minPriceSqm);
