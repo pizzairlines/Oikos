@@ -4,7 +4,6 @@ import { useEffect, useState, useCallback } from "react";
 import { BarChart3, TrendingUp, MapPin } from "lucide-react";
 import { fetchStats, StatsData } from "@/lib/data";
 import { formatArrondissement } from "@/lib/utils";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScoreBadge } from "@/components/ScoreBadge";
 import { StatsSkeleton } from "@/components/ListingSkeleton";
 import { ErrorState } from "@/components/ErrorState";
@@ -79,14 +78,14 @@ export default function StatsPage() {
 
       {/* Charts row */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
-        <Card className="border-0 shadow-sm rounded-2xl">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-semibold flex items-center gap-2">
+        <div className="glass rounded-2xl">
+          <div className="px-5 pt-5 pb-2">
+            <h3 className="text-sm font-semibold flex items-center gap-2">
               <TrendingUp className="h-4 w-4 text-primary" />
               Distribution prix/m²
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
+            </h3>
+          </div>
+          <div className="px-5 pb-5">
             <BarChartCSS
               data={stats.priceDistribution}
               labelKey="range"
@@ -94,17 +93,17 @@ export default function StatsPage() {
               color="bg-primary/25"
               activeColor="bg-primary/50"
             />
-          </CardContent>
-        </Card>
+          </div>
+        </div>
 
-        <Card className="border-0 shadow-sm rounded-2xl">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-semibold flex items-center gap-2">
+        <div className="glass rounded-2xl">
+          <div className="px-5 pt-5 pb-2">
+            <h3 className="text-sm font-semibold flex items-center gap-2">
               <BarChart3 className="h-4 w-4 text-primary" />
               Distribution scores
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
+            </h3>
+          </div>
+          <div className="px-5 pb-5">
             <BarChartCSS
               data={stats.scoreDistribution}
               labelKey="range"
@@ -112,19 +111,19 @@ export default function StatsPage() {
               color="bg-emerald-200"
               activeColor="bg-emerald-400"
             />
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       </div>
 
       {/* By arrondissement */}
-      <Card className="mb-8 border-0 shadow-sm rounded-2xl">
-        <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-semibold flex items-center gap-2">
+      <div className="glass rounded-2xl mb-8">
+        <div className="px-5 pt-5 pb-2">
+          <h3 className="text-sm font-semibold flex items-center gap-2">
             <MapPin className="h-4 w-4 text-primary" />
             Par arrondissement
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
+          </h3>
+        </div>
+        <div className="px-5 pb-5">
           {stats.byArrondissement.length === 0 ? (
             <p className="text-sm text-muted-foreground">Aucune donnee.</p>
           ) : (
@@ -159,15 +158,15 @@ export default function StatsPage() {
               </div>
             </div>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
       {/* Top 5 */}
-      <Card className="mb-8 border-0 shadow-sm rounded-2xl">
-        <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-semibold">Top 5 opportunites</CardTitle>
-        </CardHeader>
-        <CardContent>
+      <div className="glass rounded-2xl mb-8">
+        <div className="px-5 pt-5 pb-2">
+          <h3 className="text-sm font-semibold">Top 5 opportunites</h3>
+        </div>
+        <div className="px-5 pb-5">
           <div className="space-y-1">
             {stats.topOpportunities.map((l, i) => (
               <a
@@ -187,23 +186,23 @@ export default function StatsPage() {
               </a>
             ))}
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     </div>
   );
 }
 
 function KpiCard({ label, value, suffix }: { label: string; value: string; suffix?: string }) {
   return (
-    <Card className="border-0 shadow-sm rounded-2xl">
-      <CardContent className="py-5 px-4">
+    <div className="glass rounded-2xl">
+      <div className="py-5 px-4">
         <div className="text-xl font-bold text-foreground tabular-nums">
           {value}
           {suffix && <span className="text-xs font-normal text-muted-foreground ml-1">{suffix}</span>}
         </div>
         <div className="text-xs text-muted-foreground mt-1">{label}</div>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }
 

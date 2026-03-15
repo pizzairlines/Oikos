@@ -4,7 +4,6 @@ import { Bell, Plus, Pencil, Trash2, X, Check } from "lucide-react";
 import { ARRONDISSEMENTS } from "@/lib/types";
 import { useAlerts } from "@/hooks/use-alerts";
 import { useToast } from "@/components/Toast";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
@@ -41,7 +40,7 @@ export default function SettingsPage() {
           <Bell className="h-4 w-4 text-muted-foreground" />
           <h1 className="text-lg font-semibold text-foreground">Alertes</h1>
         </div>
-        <Button size="sm" onClick={startCreate}>
+        <Button size="sm" className="rounded-xl" onClick={startCreate}>
           <Plus className="h-3.5 w-3.5" />
           Nouvelle alerte
         </Button>
@@ -49,13 +48,13 @@ export default function SettingsPage() {
 
       {/* Edit form */}
       {editing && (
-        <Card className="mb-4">
-          <CardHeader>
-            <CardTitle className="text-sm">
+        <div className="glass-strong rounded-2xl mb-4 animate-fade-in-up">
+          <div className="px-5 pt-5 pb-2">
+            <h3 className="text-sm font-semibold">
               {editing.id ? "Modifier l'alerte" : "Nouvelle alerte"}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
+            </h3>
+          </div>
+          <div className="px-5 pb-5 space-y-4">
             <div>
               <label className="block text-xs font-medium text-muted-foreground mb-1.5">Nom</label>
               <Input
@@ -63,6 +62,7 @@ export default function SettingsPage() {
                 value={editing.name || ""}
                 onChange={(e) => setEditing({ ...editing, name: e.target.value })}
                 placeholder="Ex: Opportunites Paris 10-11e"
+                className="h-11 rounded-xl"
               />
             </div>
 
@@ -80,19 +80,24 @@ export default function SettingsPage() {
                 value={editing.phone_number || ""}
                 onChange={(e) => setEditing({ ...editing, phone_number: e.target.value })}
                 placeholder="+33612345678"
+                className="h-11 rounded-xl"
               />
             </div>
 
             <div>
               <label className="block text-xs font-medium text-muted-foreground mb-2">Arrondissements</label>
-              <div className="flex flex-wrap gap-1.5">
+              <div className="flex flex-wrap gap-2">
                 {ARRONDISSEMENTS.map((arr) => {
                   const selected = (editing.arrondissements || []).includes(arr.value);
                   return (
-                    <Button
+                    <button
                       key={arr.value}
-                      variant={selected ? "default" : "outline"}
-                      size="xs"
+                      className={cn(
+                        "h-9 min-w-9 px-3 rounded-full text-sm font-medium transition-all duration-150",
+                        selected
+                          ? "bg-primary text-primary-foreground shadow-sm"
+                          : "bg-muted text-muted-foreground hover:bg-muted/80"
+                      )}
                       onClick={() => {
                         const current = editing.arrondissements || [];
                         const updated = selected
@@ -102,32 +107,32 @@ export default function SettingsPage() {
                       }}
                     >
                       {arr.label.replace("Paris ", "")}
-                    </Button>
+                    </button>
                   );
                 })}
               </div>
             </div>
 
             <div className="flex gap-2 pt-1">
-              <Button size="sm" onClick={handleSave}>
+              <Button size="sm" className="rounded-xl" onClick={handleSave}>
                 <Check className="h-3.5 w-3.5" />
                 Enregistrer
               </Button>
-              <Button variant="outline" size="sm" onClick={cancelEdit}>
+              <Button variant="outline" size="sm" className="rounded-xl" onClick={cancelEdit}>
                 <X className="h-3.5 w-3.5" />
                 Annuler
               </Button>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       )}
 
       {/* Alert list */}
       {loading ? (
-        <div className="space-y-2">
+        <div className="space-y-3">
           {Array.from({ length: 2 }).map((_, i) => (
-            <Card key={i}>
-              <CardContent className="py-4">
+            <div key={i} className="glass rounded-2xl">
+              <div className="py-4 px-5">
                 <div className="flex items-center justify-between">
                   <div className="space-y-2">
                     <Skeleton className="h-4 w-40" />
@@ -139,8 +144,8 @@ export default function SettingsPage() {
                     <Skeleton className="h-6 w-6 rounded" />
                   </div>
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
           ))}
         </div>
       ) : alerts.length === 0 && !editing ? (
@@ -156,13 +161,13 @@ export default function SettingsPage() {
           </div>
         </div>
       ) : (
-        <div className="space-y-2">
+        <div className="space-y-3">
           {alerts.map((alert) => (
-            <Card
+            <div
               key={alert.id}
-              className={cn("transition-opacity", !alert.is_active && "opacity-50")}
+              className={cn("glass rounded-2xl transition-opacity", !alert.is_active && "opacity-50")}
             >
-              <CardContent className="py-4">
+              <div className="py-4 px-5">
                 <div className="flex items-center justify-between">
                   <div className="flex-1 min-w-0">
                     <h3 className="text-sm font-medium text-foreground">{alert.name}</h3>
@@ -201,8 +206,8 @@ export default function SettingsPage() {
                     </Button>
                   </div>
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
           ))}
         </div>
       )}
@@ -226,6 +231,7 @@ function InputField({
         value={value ?? ""}
         onChange={(e) => onChange(e.target.value ? Number(e.target.value) : null)}
         placeholder={placeholder}
+        className="h-11 rounded-xl"
       />
     </div>
   );
