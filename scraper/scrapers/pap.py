@@ -1,18 +1,36 @@
-"""PAP.fr scraper using Playwright (Cloudflare protected)."""
+"""PAP.fr scraper using their internal search API.
+
+PAP has an internal API for search results that returns JSON.
+This avoids Cloudflare browser challenges entirely.
+"""
 
 from __future__ import annotations
 
 import logging
 import re
 
-from playwright.async_api import async_playwright, Page
+import httpx
 
 from scrapers.base import BaseScraper, RawListing, parse_arrondissement
 
 logger = logging.getLogger(__name__)
 
-BASE_URL = "https://www.pap.fr/annonce/vente-appartements-paris-75-g439"
-MAX_PAGES = 10
+# PAP internal search API
+SEARCH_URL = "https://ws.pap.fr/immobilier/annonces"
+
+HEADERS = {
+    "User-Agent": (
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
+        "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
+    ),
+    "Accept": "application/json",
+    "Accept-Language": "fr-FR,fr;q=0.9",
+    "Referer": "https://www.pap.fr/annonce/vente-appartements-paris-75",
+    "Origin": "https://www.pap.fr",
+}
+
+PAGE_SIZE = 30
+MAX_PAGES = 8  # 240 listings max
 
 
 class PAPScraper(BaseScraper):
@@ -20,171 +38,238 @@ class PAPScraper(BaseScraper):
 
     def _build_page_url(self, page_num: int) -> str:
         if page_num == 1:
-            return BASE_URL
-        return f"{BASE_URL}-{page_num}"
+            return "https://www.pap.fr/annonce/vente-appartements-paris-75-g439"
+        return f"https://www.pap.fr/annonce/vente-appartements-paris-75-g439-{page_num}"
 
-    async def _extract_listings_from_page(self, page: Page) -> list[RawListing]:
-        """Extract listing data from a search results page."""
-        listings: list[RawListing] = []
-
-        # Wait for listing cards to load
-        try:
-            await page.wait_for_selector("[data-controller='search-results'] .search-list-item, .search-results-item", timeout=10000)
-        except Exception:
-            logger.warning("[pap] No listing cards found on page")
-            return listings
-
-        # Get all listing card elements
-        cards = await page.query_selector_all("[data-controller='search-results'] .search-list-item, .search-results-item")
-
-        for card in cards:
-            try:
-                listing = await self._parse_card(card, page)
-                if listing:
-                    listings.append(listing)
-            except Exception as e:
-                logger.debug(f"[pap] Failed to parse card: {e}")
-                continue
-
-        return listings
-
-    async def _parse_card(self, card, page: Page) -> RawListing | None:
-        """Parse a single listing card element."""
-        # Try to get the link and ID
-        link_el = await card.query_selector("a[href*='/annonces/']")
-        if not link_el:
-            link_el = await card.query_selector("a")
-
-        href = await link_el.get_attribute("href") if link_el else None
-        if not href:
+    def _parse_listing_api(self, ad: dict) -> RawListing | None:
+        """Parse a listing from the PAP API response."""
+        ad_id = ad.get("id")
+        if not ad_id:
             return None
-
-        url = f"https://www.pap.fr{href}" if href.startswith("/") else href
-
-        # Extract source ID from URL
-        source_id_match = re.search(r"-r(\d+)", href)
-        if not source_id_match:
-            # Try data-annonce attribute
-            annonce_el = await card.query_selector("a[data-annonce]")
-            if annonce_el:
-                source_id = await annonce_el.get_attribute("data-annonce")
-            else:
-                source_id = href.split("/")[-1]
-        else:
-            source_id = source_id_match.group(1)
-
-        if not source_id:
-            return None
-
-        # Title
-        title_el = await card.query_selector(".item-title, h2, .h1, span.h1")
-        title = await title_el.inner_text() if title_el else "Appartement Paris"
-        title = title.strip()
 
         # Price
-        price = None
-        price_el = await card.query_selector(".item-price, .price, span.price")
-        if price_el:
-            price_text = await price_el.inner_text()
-            price_clean = re.sub(r"[^\d]", "", price_text)
-            if price_clean:
-                price = int(price_clean)
+        price = ad.get("prix")
+        if not price:
+            budget = ad.get("budget")
+            if budget:
+                price = budget.get("prix")
 
-        # Surface and rooms from tags/details
-        surface = None
-        rooms = None
-        tags_els = await card.query_selector_all(".item-tags li, .item-description span, .item-tags span")
-        for tag_el in tags_els:
-            tag_text = await tag_el.inner_text()
-            tag_text = tag_text.strip().lower()
+        # Surface
+        surface = ad.get("surface")
+        if not surface:
+            surface = ad.get("nb_m2_terrain")
 
-            # Surface: "45 m²" or "45m²"
-            surface_match = re.search(r"(\d+(?:[,.]\d+)?)\s*m[²2]", tag_text)
-            if surface_match and not surface:
-                surface = float(surface_match.group(1).replace(",", "."))
+        # Rooms
+        rooms = ad.get("nb_pieces")
 
-            # Rooms: "3 pièces" or "3p" or "studio"
-            rooms_match = re.search(r"(\d+)\s*(?:pi[èe]ces?|p\b)", tag_text)
-            if rooms_match and not rooms:
-                rooms = int(rooms_match.group(1))
-            elif "studio" in tag_text:
-                rooms = 1
-
-        # Location / arrondissement
+        # Location
         arrondissement = None
-        loc_el = await card.query_selector(".item-description strong, .item-location, .item-city")
-        if loc_el:
-            loc_text = await loc_el.inner_text()
-            arrondissement = parse_arrondissement(loc_text)
+        places = ad.get("_embedded", {}).get("place", [])
+        if isinstance(places, list):
+            for place in places:
+                slug = place.get("slug", "")
+                cp = place.get("code_postal", "")
+                arrondissement = parse_arrondissement(cp) or parse_arrondissement(slug)
+                if arrondissement:
+                    break
 
-        # If no arrondissement from location, try title
         if not arrondissement:
-            arrondissement = parse_arrondissement(title)
+            # Try from the title or description
+            title_text = ad.get("titre", "")
+            arrondissement = parse_arrondissement(title_text)
 
-        # Photo
+        # URL
+        slug = ad.get("slug", "")
+        if slug:
+            url = f"https://www.pap.fr/annonces/{slug}-r{ad_id}"
+        else:
+            url = f"https://www.pap.fr/annonces/appartement-r{ad_id}"
+
+        # Title
+        title = ad.get("titre", "Appartement Paris")
+        typebien = ad.get("typebien", "")
+        if not title and typebien:
+            title = f"{typebien} Paris"
+
+        # Photos
         photos = []
-        img_el = await card.query_selector("img[src*='photo'], img.img-fluid, img[data-src]")
-        if img_el:
-            img_src = await img_el.get_attribute("src") or await img_el.get_attribute("data-src")
-            if img_src and not img_src.startswith("data:"):
-                photos.append(img_src)
+        medias = ad.get("_embedded", {}).get("photo", [])
+        if isinstance(medias, list):
+            for media in medias[:5]:
+                urls = media.get("_links", {})
+                photo_url = None
+                for key in ("default", "max", "desktop", "original"):
+                    link = urls.get(key, {})
+                    if isinstance(link, dict) and link.get("href"):
+                        photo_url = link["href"]
+                        break
+                if photo_url:
+                    photos.append(photo_url)
+
+        # Floor
+        floor = ad.get("etage")
+
+        # DPE
+        dpe = ad.get("classe_energie")
+
+        # Description
+        description = ad.get("texte", "")
 
         return RawListing(
             source="pap",
-            source_id=str(source_id),
+            source_id=str(ad_id),
             url=url,
-            title=title,
-            price=price,
-            surface=surface,
-            rooms=rooms,
+            title=title.strip() if title else "Appartement Paris",
+            price=int(price) if price else None,
+            surface=float(surface) if surface else None,
+            rooms=int(rooms) if rooms else None,
             arrondissement=arrondissement,
-            photos=photos,
+            description=description[:2000] if description else None,
+            floor=int(floor) if floor else None,
+            dpe=dpe,
             seller_type="particulier",  # PAP = always particulier
+            photos=photos,
         )
+
+    def _parse_listing_html(self, card_data: dict) -> RawListing | None:
+        """Fallback: parse from HTML-style data."""
+        # Not used in API mode, kept for compatibility
+        return None
 
     async def scrape(self) -> list[RawListing]:
         listings: list[RawListing] = []
 
-        async with async_playwright() as p:
-            browser = await p.chromium.launch(headless=True)
-            context = await browser.new_context(
-                user_agent=(
-                    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
-                    "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
-                ),
-                viewport={"width": 1280, "height": 800},
-                locale="fr-FR",
-            )
-            page = await context.new_page()
+        # Try API approach first
+        api_listings = await self._scrape_api()
+        if api_listings:
+            return api_listings
 
+        # Fallback: try HTML scraping with httpx (no Playwright)
+        logger.info("[pap] API failed, trying HTML fallback")
+        return await self._scrape_html_fallback()
+
+    async def _scrape_api(self) -> list[RawListing]:
+        """Scrape via PAP internal API."""
+        listings: list[RawListing] = []
+
+        async with httpx.AsyncClient(headers=HEADERS, timeout=30.0, follow_redirects=True) as client:
             for page_num in range(1, MAX_PAGES + 1):
-                url = self._build_page_url(page_num)
-                logger.info(f"[pap] Scraping page {page_num}: {url}")
+                params = {
+                    "produit": "vente",
+                    "typesbien": "appartement",
+                    "geo_objets_ids": "75",  # Paris
+                    "nb_resultats_par_page": str(PAGE_SIZE),
+                    "page": str(page_num),
+                    "tri": "date_classement",
+                }
 
                 try:
-                    await page.goto(url, wait_until="domcontentloaded", timeout=30000)
-                    # Wait a bit for Cloudflare challenge to resolve
-                    await page.wait_for_timeout(3000)
+                    resp = await client.get(SEARCH_URL, params=params)
+                    if resp.status_code == 403:
+                        logger.warning("[pap] API returned 403 — blocked")
+                        break
+                    resp.raise_for_status()
+                    data = resp.json()
+                except httpx.HTTPStatusError as e:
+                    logger.warning(f"[pap] API page {page_num} HTTP error: {e.response.status_code}")
+                    break
                 except Exception as e:
-                    logger.warning(f"[pap] Failed to load page {page_num}: {e}")
+                    logger.warning(f"[pap] API page {page_num} error: {e}")
                     break
 
-                page_listings = await self._extract_listings_from_page(page)
-                if not page_listings:
-                    logger.info(f"[pap] No listings found on page {page_num}, stopping")
+                # Parse ads from API response
+                ads = data.get("_embedded", {}).get("annonce", [])
+                if not ads:
+                    logger.info(f"[pap] No more results at page {page_num}")
                     break
 
-                listings.extend(page_listings)
-                logger.info(f"[pap] Page {page_num}: {len(page_listings)} listings")
+                for ad in ads:
+                    listing = self._parse_listing_api(ad)
+                    if listing:
+                        listings.append(listing)
 
-                # Check if there's a next page
-                next_link = await page.query_selector(f"a[href*='-{page_num + 1}']")
-                if not next_link:
-                    logger.info("[pap] No more pages")
+                total = data.get("nb_items", 0)
+                logger.info(f"[pap] API page {page_num}: {len(ads)} ads (total: {total})")
+
+                if page_num * PAGE_SIZE >= total:
                     break
 
                 await self.random_delay()
 
-            await browser.close()
+        return listings
+
+    async def _scrape_html_fallback(self) -> list[RawListing]:
+        """Fallback: scrape search results HTML with httpx (no Playwright)."""
+        listings: list[RawListing] = []
+
+        headers = {
+            **HEADERS,
+            "Accept": "text/html,application/xhtml+xml",
+        }
+
+        async with httpx.AsyncClient(headers=headers, timeout=30.0, follow_redirects=True) as client:
+            for page_num in range(1, 4):  # Only 3 pages for fallback
+                url = self._build_page_url(page_num)
+                logger.info(f"[pap] HTML fallback page {page_num}: {url}")
+
+                try:
+                    resp = await client.get(url)
+                    if resp.status_code == 403:
+                        logger.warning("[pap] HTML blocked by Cloudflare")
+                        break
+                    resp.raise_for_status()
+                except Exception as e:
+                    logger.warning(f"[pap] HTML page {page_num} error: {e}")
+                    break
+
+                # Parse with BeautifulSoup
+                try:
+                    from bs4 import BeautifulSoup
+                    soup = BeautifulSoup(resp.text, "lxml")
+
+                    # Look for JSON-LD or embedded data
+                    scripts = soup.find_all("script", type="application/ld+json")
+                    for script in scripts:
+                        try:
+                            import json
+                            data = json.loads(script.string)
+                            if isinstance(data, list):
+                                for item in data:
+                                    if item.get("@type") in ("Apartment", "Residence", "Product"):
+                                        listing = self._parse_jsonld(item)
+                                        if listing:
+                                            listings.append(listing)
+                        except Exception:
+                            continue
+
+                except Exception as e:
+                    logger.warning(f"[pap] HTML parse error: {e}")
+                    break
+
+                await self.random_delay()
 
         return listings
+
+    def _parse_jsonld(self, item: dict) -> RawListing | None:
+        """Parse a JSON-LD item from PAP HTML."""
+        try:
+            url = item.get("url", "")
+            name = item.get("name", "Appartement Paris")
+            price = None
+            offers = item.get("offers", {})
+            if offers:
+                price = offers.get("price")
+
+            source_id = re.search(r"r(\d+)", url)
+            sid = source_id.group(1) if source_id else url.split("/")[-1]
+
+            return RawListing(
+                source="pap",
+                source_id=str(sid),
+                url=f"https://www.pap.fr{url}" if url.startswith("/") else url,
+                title=name,
+                price=int(price) if price else None,
+                seller_type="particulier",
+            )
+        except Exception:
+            return None

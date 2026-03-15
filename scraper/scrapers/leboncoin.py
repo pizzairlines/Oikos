@@ -1,24 +1,38 @@
-"""LeBonCoin scraper using Playwright with stealth measures.
+"""LeBonCoin scraper using their internal API.
 
-LeBonCoin uses DataDome anti-bot protection which is very aggressive.
-This scraper uses Playwright in non-headless mode with stealth techniques.
-Data is extracted from the __NEXT_DATA__ JSON embedded in pages.
+LeBonCoin uses DataDome anti-bot which blocks Playwright on servers.
+This scraper uses the LeBonCoin internal API (api.leboncoin.fr) which
+is more reliable than browser scraping on headless servers.
 """
 
 from __future__ import annotations
 
 import json
 import logging
-import re
 
-from playwright.async_api import async_playwright, Page
+import httpx
 
 from scrapers.base import BaseScraper, RawListing, parse_arrondissement
 
 logger = logging.getLogger(__name__)
 
-SEARCH_URL = "https://www.leboncoin.fr/recherche"
-MAX_PAGES = 5  # Keep low to reduce detection risk
+# LeBonCoin internal search API
+API_URL = "https://api.leboncoin.fr/finder/search"
+
+HEADERS = {
+    "User-Agent": (
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
+        "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
+    ),
+    "Accept": "application/json",
+    "Accept-Language": "fr-FR,fr;q=0.9",
+    "Content-Type": "application/json",
+    "Origin": "https://www.leboncoin.fr",
+    "Referer": "https://www.leboncoin.fr/recherche?category=9&locations=Paris&real_estate_type=2",
+    "api_key": "ba0c2dad52b3ec",
+}
+
+MAX_PAGES = 5
 
 
 def _get_attribute(attributes: list[dict], key: str) -> str | None:
@@ -34,54 +48,41 @@ class LeBonCoinScraper(BaseScraper):
 
     def __init__(self):
         super().__init__()
-        # Longer delays for LBC due to aggressive anti-bot
-        self.delay_min = 5.0
-        self.delay_max = 12.0
+        # Longer delays for LBC
+        self.delay_min = 3.0
+        self.delay_max = 7.0
 
-    def _build_search_url(self, page: int) -> str:
-        params = {
-            "category": "9",  # ventes immobilieres
-            "locations": "Paris",
-            "real_estate_type": "2",  # apartments
-            "page": str(page),
+    def _build_search_payload(self, page: int) -> dict:
+        """Build the JSON payload for the search API."""
+        return {
+            "limit": 35,
+            "limit_alu": 0,
+            "offset": (page - 1) * 35,
+            "filters": {
+                "category": {"id": "9"},  # Ventes immobilières
+                "enums": {
+                    "real_estate_type": ["2"],  # Appartement
+                    "ad_type": ["offer"],
+                },
+                "location": {
+                    "locations": [
+                        {
+                            "locationType": "city",
+                            "label": "Paris",
+                            "city": "Paris",
+                            "zipcode": "75000",
+                            "department_id": "75",
+                            "region_id": "12",
+                        }
+                    ]
+                },
+            },
+            "sort_by": "time",
+            "sort_order": "desc",
         }
-        query = "&".join(f"{k}={v}" for k, v in params.items())
-        return f"{SEARCH_URL}?{query}"
-
-    def _parse_next_data_ads(self, next_data: dict) -> list[dict]:
-        """Extract ads from __NEXT_DATA__ JSON structure."""
-        try:
-            # Try the known path for search results
-            props = next_data.get("props", {})
-            page_props = props.get("pageProps", {})
-
-            # Path varies — try multiple known locations
-            # Path 1: initialProps.searchData.ads
-            initial = page_props.get("initialProps", {})
-            search_data = initial.get("searchData", {})
-            ads = search_data.get("ads", [])
-            if ads:
-                return ads
-
-            # Path 2: searchData.ads (direct)
-            search_data = page_props.get("searchData", {})
-            ads = search_data.get("ads", [])
-            if ads:
-                return ads
-
-            # Path 3: ads directly in pageProps
-            ads = page_props.get("ads", [])
-            if ads:
-                return ads
-
-            logger.warning("[leboncoin] Could not find ads in __NEXT_DATA__")
-            return []
-        except Exception as e:
-            logger.warning(f"[leboncoin] Error parsing __NEXT_DATA__: {e}")
-            return []
 
     def _parse_ad(self, ad: dict) -> RawListing | None:
-        """Parse a single ad from LeBonCoin's JSON format."""
+        """Parse a single ad from LeBonCoin's API response."""
         list_id = ad.get("list_id")
         if not list_id:
             return None
@@ -112,7 +113,7 @@ class LeBonCoinScraper(BaseScraper):
         # Images
         photos = []
         images = ad.get("images", {})
-        urls = images.get("urls", [])
+        urls = images.get("urls", []) or images.get("urls_large", [])
         photos = urls[:5] if urls else []
 
         # Attributes
@@ -181,97 +182,159 @@ class LeBonCoinScraper(BaseScraper):
             published_at=pub_date,
         )
 
-    async def _extract_from_page(self, page: Page) -> list[RawListing]:
-        """Extract listings from __NEXT_DATA__ on the current page."""
-        listings: list[RawListing] = []
-
-        try:
-            # Wait for the page to be loaded
-            await page.wait_for_load_state("domcontentloaded")
-            await page.wait_for_timeout(2000)
-
-            # Extract __NEXT_DATA__ JSON
-            next_data_el = await page.query_selector("script#__NEXT_DATA__")
-            if not next_data_el:
-                logger.warning("[leboncoin] No __NEXT_DATA__ found — may be blocked")
-                return listings
-
-            next_data_text = await next_data_el.inner_text()
-            next_data = json.loads(next_data_text)
-
-            ads = self._parse_next_data_ads(next_data)
-            for ad in ads:
-                listing = self._parse_ad(ad)
-                if listing:
-                    listings.append(listing)
-
-        except Exception as e:
-            logger.warning(f"[leboncoin] Failed to extract from page: {e}")
-
-        return listings
-
     async def scrape(self) -> list[RawListing]:
+        """Scrape via LeBonCoin API."""
         listings: list[RawListing] = []
 
-        async with async_playwright() as p:
-            # Use non-headless for better anti-bot evasion
-            browser = await p.chromium.launch(
-                headless=False,
-                args=[
-                    "--disable-blink-features=AutomationControlled",
-                    "--no-sandbox",
-                    "--disable-web-security",
-                    "--disable-features=IsolateOrigins,site-per-process",
-                ],
-            )
-            context = await browser.new_context(
-                user_agent=(
-                    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
-                    "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
-                ),
-                viewport={"width": 1366, "height": 768},
-                locale="fr-FR",
-                timezone_id="Europe/Paris",
-            )
-
-            # Stealth: mask webdriver detection
-            await context.add_init_script("""
-                Object.defineProperty(navigator, 'webdriver', {get: () => undefined});
-                Object.defineProperty(navigator, 'plugins', {get: () => [1, 2, 3, 4, 5]});
-                Object.defineProperty(navigator, 'languages', {get: () => ['fr-FR', 'fr', 'en-US', 'en']});
-                window.chrome = {runtime: {}};
-            """)
-
-            page = await context.new_page()
+        async with httpx.AsyncClient(
+            headers=HEADERS,
+            timeout=30.0,
+            follow_redirects=True,
+        ) as client:
 
             for page_num in range(1, MAX_PAGES + 1):
-                url = self._build_search_url(page_num)
-                logger.info(f"[leboncoin] Scraping page {page_num}: {url}")
+                payload = self._build_search_payload(page_num)
+                logger.info(f"[leboncoin] Scraping page {page_num}")
 
                 try:
-                    await page.goto(url, wait_until="domcontentloaded", timeout=30000)
-                    # Extra wait for DataDome challenge
-                    await page.wait_for_timeout(5000)
+                    resp = await client.post(API_URL, json=payload)
+
+                    if resp.status_code == 403:
+                        logger.warning("[leboncoin] API returned 403 — DataDome blocked")
+                        break
+                    if resp.status_code == 401:
+                        logger.warning("[leboncoin] API returned 401 — auth required")
+                        break
+
+                    resp.raise_for_status()
+                    data = resp.json()
+
+                except httpx.HTTPStatusError as e:
+                    logger.warning(f"[leboncoin] Page {page_num} HTTP error: {e.response.status_code}")
+                    break
                 except Exception as e:
-                    logger.warning(f"[leboncoin] Failed to load page {page_num}: {e}")
+                    logger.warning(f"[leboncoin] Page {page_num} error: {e}")
                     break
 
-                # Check if we hit a DataDome challenge
-                content = await page.content()
-                if "datadome" in content.lower() or "captcha" in content.lower():
-                    logger.warning("[leboncoin] DataDome challenge detected, stopping")
+                ads = data.get("ads", [])
+                if not ads:
+                    logger.info(f"[leboncoin] No more results at page {page_num}")
                     break
 
-                page_listings = await self._extract_from_page(page)
-                if not page_listings:
-                    logger.info(f"[leboncoin] No listings on page {page_num}, stopping")
-                    break
+                for ad in ads:
+                    listing = self._parse_ad(ad)
+                    if listing:
+                        listings.append(listing)
 
-                listings.extend(page_listings)
-                logger.info(f"[leboncoin] Page {page_num}: {len(page_listings)} listings")
+                total = data.get("total", 0)
+                logger.info(f"[leboncoin] Page {page_num}: {len(ads)} ads (total: {total})")
+
+                if page_num * 35 >= total:
+                    break
 
                 await self.random_delay()
 
-            await browser.close()
+        # If API failed, try Playwright fallback on headless
+        if not listings:
+            logger.info("[leboncoin] API returned no results, trying Playwright fallback")
+            listings = await self._scrape_playwright_fallback()
 
         return listings
+
+    async def _scrape_playwright_fallback(self) -> list[RawListing]:
+        """Fallback: use Playwright in headless mode with stealth."""
+        listings: list[RawListing] = []
+
+        try:
+            from playwright.async_api import async_playwright
+        except ImportError:
+            logger.warning("[leboncoin] Playwright not available for fallback")
+            return listings
+
+        try:
+            async with async_playwright() as p:
+                browser = await p.chromium.launch(
+                    headless=True,
+                    args=[
+                        "--disable-blink-features=AutomationControlled",
+                        "--no-sandbox",
+                        "--disable-dev-shm-usage",
+                    ],
+                )
+                context = await browser.new_context(
+                    user_agent=(
+                        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
+                        "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
+                    ),
+                    viewport={"width": 1366, "height": 768},
+                    locale="fr-FR",
+                    timezone_id="Europe/Paris",
+                )
+
+                # Stealth: mask webdriver detection
+                await context.add_init_script("""
+                    Object.defineProperty(navigator, 'webdriver', {get: () => undefined});
+                    Object.defineProperty(navigator, 'plugins', {get: () => [1, 2, 3, 4, 5]});
+                    Object.defineProperty(navigator, 'languages', {get: () => ['fr-FR', 'fr', 'en-US', 'en']});
+                    window.chrome = {runtime: {}};
+                """)
+
+                page = await context.new_page()
+
+                for page_num in range(1, 3):  # Only 2 pages for fallback
+                    url = f"https://www.leboncoin.fr/recherche?category=9&locations=Paris&real_estate_type=2&page={page_num}"
+                    logger.info(f"[leboncoin] Playwright fallback page {page_num}")
+
+                    try:
+                        await page.goto(url, wait_until="domcontentloaded", timeout=30000)
+                        await page.wait_for_timeout(5000)
+                    except Exception as e:
+                        logger.warning(f"[leboncoin] Playwright page {page_num} failed: {e}")
+                        break
+
+                    # Check for DataDome
+                    content = await page.content()
+                    if "datadome" in content.lower() or "captcha" in content.lower():
+                        logger.warning("[leboncoin] DataDome challenge detected")
+                        break
+
+                    # Try to extract __NEXT_DATA__
+                    try:
+                        next_data_el = await page.query_selector("script#__NEXT_DATA__")
+                        if next_data_el:
+                            text = await next_data_el.inner_text()
+                            data = json.loads(text)
+                            ads = self._extract_ads_from_next_data(data)
+                            for ad in ads:
+                                listing = self._parse_ad(ad)
+                                if listing:
+                                    listings.append(listing)
+                            logger.info(f"[leboncoin] Playwright page {page_num}: {len(ads)} ads")
+                    except Exception as e:
+                        logger.warning(f"[leboncoin] Playwright extract failed: {e}")
+
+                    await self.random_delay()
+
+                await browser.close()
+        except Exception as e:
+            logger.warning(f"[leboncoin] Playwright fallback failed entirely: {e}")
+
+        return listings
+
+    def _extract_ads_from_next_data(self, next_data: dict) -> list[dict]:
+        """Extract ads from __NEXT_DATA__ JSON."""
+        try:
+            props = next_data.get("props", {})
+            page_props = props.get("pageProps", {})
+
+            for path in [
+                lambda: page_props.get("initialProps", {}).get("searchData", {}).get("ads", []),
+                lambda: page_props.get("searchData", {}).get("ads", []),
+                lambda: page_props.get("ads", []),
+            ]:
+                ads = path()
+                if ads:
+                    return ads
+            return []
+        except Exception:
+            return []
