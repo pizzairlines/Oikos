@@ -239,12 +239,20 @@ export async function fetchStats(): Promise<StatsData> {
   // Try server-side RPC first (fast, single query)
   try {
     const { data: rpcData, error } = await supabase.rpc("get_listing_stats");
-    if (!error && rpcData) {
-      const s = rpcData as StatsData;
-      // Validate shape — RPC returns camelCase JSON matching StatsData
-      if (typeof s.totalListings === "number" && Array.isArray(s.byArrondissement)) {
-        return s;
-      }
+    if (!error && rpcData && typeof rpcData === "object") {
+      // Safely extract with defaults — RPC may return null for empty datasets
+      const r = rpcData as Record<string, unknown>;
+      const stats: StatsData = {
+        totalListings: (r.totalListings as number) ?? 0,
+        avgPriceSqm: (r.avgPriceSqm as number) ?? 0,
+        medianPriceSqm: (r.medianPriceSqm as number) ?? 0,
+        avgScore: (r.avgScore as number) ?? 0,
+        byArrondissement: Array.isArray(r.byArrondissement) ? r.byArrondissement : [],
+        priceDistribution: Array.isArray(r.priceDistribution) ? r.priceDistribution : [],
+        scoreDistribution: Array.isArray(r.scoreDistribution) ? r.scoreDistribution : [],
+        topOpportunities: Array.isArray(r.topOpportunities) ? r.topOpportunities : [],
+      };
+      return stats;
     }
   } catch {
     // RPC not deployed yet — fall through to client-side
