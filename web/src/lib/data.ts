@@ -240,17 +240,36 @@ export async function fetchStats(): Promise<StatsData> {
   try {
     const { data: rpcData, error } = await supabase.rpc("get_listing_stats");
     if (!error && rpcData && typeof rpcData === "object") {
-      // Safely extract with defaults — RPC may return null for empty datasets
-      const r = rpcData as Record<string, unknown>;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const r = rpcData as any;
+      // Map snake_case SQL results to camelCase TypeScript interface
+      const byArr = Array.isArray(r.byArrondissement)
+        ? r.byArrondissement.map((a: Record<string, unknown>) => ({
+            arr: a.arr as string,
+            count: (a.count as number) ?? 0,
+            avgPriceSqm: ((a.avgPriceSqm ?? a.avg_price_sqm) as number) ?? 0,
+            avgScore: ((a.avgScore ?? a.avg_score) as number) ?? 0,
+          }))
+        : [];
+      const top = Array.isArray(r.topOpportunities)
+        ? r.topOpportunities.map((t: Record<string, unknown>) => ({
+            id: t.id as string,
+            title: t.title as string,
+            arrondissement: (t.arrondissement as string) ?? null,
+            price_per_sqm: (t.price_per_sqm as number) ?? null,
+            surface: (t.surface as number) ?? null,
+            opportunity_score: (t.opportunity_score as number) ?? 0,
+          }))
+        : [];
       const stats: StatsData = {
-        totalListings: (r.totalListings as number) ?? 0,
-        avgPriceSqm: (r.avgPriceSqm as number) ?? 0,
-        medianPriceSqm: (r.medianPriceSqm as number) ?? 0,
-        avgScore: (r.avgScore as number) ?? 0,
-        byArrondissement: Array.isArray(r.byArrondissement) ? r.byArrondissement : [],
+        totalListings: (r.totalListings ?? r.total_listings ?? 0) as number,
+        avgPriceSqm: (r.avgPriceSqm ?? r.avg_price_sqm ?? 0) as number,
+        medianPriceSqm: (r.medianPriceSqm ?? r.median_price_sqm ?? 0) as number,
+        avgScore: (r.avgScore ?? r.avg_score ?? 0) as number,
+        byArrondissement: byArr,
         priceDistribution: Array.isArray(r.priceDistribution) ? r.priceDistribution : [],
         scoreDistribution: Array.isArray(r.scoreDistribution) ? r.scoreDistribution : [],
-        topOpportunities: Array.isArray(r.topOpportunities) ? r.topOpportunities : [],
+        topOpportunities: top,
       };
       return stats;
     }
