@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { Heart, MapPin, Layers } from "lucide-react";
 import { Listing, SOURCE_LABELS } from "@/lib/types";
 import { ScoreBadge } from "./ScoreBadge";
@@ -20,10 +21,12 @@ export function ListingCard({ listing, isFavorite, onToggleFavorite }: ListingCa
       {/* Image */}
       <div className="relative aspect-[16/10] bg-muted overflow-hidden">
         {listing.photos && listing.photos.length > 0 ? (
-          <img
+          <Image
             src={listing.photos[0]}
             alt={listing.title}
-            className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-[1.02]"
+            fill
+            sizes="(max-width: 640px) 100vw, (max-width: 1280px) 50vw, 33vw"
+            className="object-cover transition-transform duration-300 group-hover:scale-[1.02]"
             loading="lazy"
           />
         ) : (

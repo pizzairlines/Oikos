@@ -1,0 +1,36 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:www.lobstr.io)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:scrapfly.io)",
+      "WebFetch(domain:www.pap.fr)",
+      "WebFetch(domain:apify.com)",
+      "WebFetch(domain:aimgroup.com)",
+      "WebFetch(domain:www.piloterr.com)",
+      "WebFetch(domain:www.scrapster.io)",
+      "WebFetch(domain:www.scraping-bot.io)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "Bash(curl -s -L -o /tmp/pap_page.html -w \"%{http_code} %{url_effective}\" -H \"User-Agent: Mozilla/5.0 \\(Macintosh; Intel Mac OS X 10_15_7\\) AppleWebKit/537.36 \\(KHTML, like Gecko\\) Chrome/131.0.0.0 Safari/537.36\" -H \"Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8\" -H \"Accept-Language: fr-FR,fr;q=0.9,en-US;q=0.8,en;q=0.7\" -H \"Accept-Encoding: identity\" -H \"Connection: keep-alive\" \"https://www.pap.fr/annonce/vente-appartements-paris-75-g439\")",
+      "Bash(curl -s -L -o /tmp/pap_page.html -w \"%{http_code}\" -H \"User-Agent: Mozilla/5.0 \\(Macintosh; Intel Mac OS X 10_15_7\\) AppleWebKit/537.36 \\(KHTML, like Gecko\\) Chrome/131.0.0.0 Safari/537.36\" -H \"Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7\" -H \"Accept-Language: fr-FR,fr;q=0.9,en-US;q=0.8,en;q=0.7\" -H \"Accept-Encoding: identity\" -H \"Cache-Control: max-age=0\" -H \"Sec-Fetch-Dest: document\" -H \"Sec-Fetch-Mode: navigate\" -H \"Sec-Fetch-Site: none\" -H \"Sec-Fetch-User: ?1\" -H \"Sec-Ch-Ua: \"\"Google Chrome\"\";v=\"\"131\"\", \"\"Not_A Brand\"\";v=\"\"24\"\", \"\"Chromium\"\";v=\"\"131\"\"\" -H \"Sec-Ch-Ua-Mobile: ?0\" -H \"Sec-Ch-Ua-Platform: \"\"macOS\"\"\" -H \"Upgrade-Insecure-Requests: 1\" -c /tmp/pap_cookies.txt \"https://www.pap.fr/annonce/vente-appartements-paris-75-g439\")",
+      "WebFetch(domain:www.autom.dev)",
+      "WebFetch(domain:www.getodata.com)",
+      "Bash(npx create-next-app@latest web --typescript --tailwind --app --src-dir --no-eslint --no-import-alias --use-npm)",
+      "Bash(printf 'n\\\\nn\\\\n')",
+      "Bash(npx create-next-app@latest web --typescript --tailwind --app --src-dir --no-eslint --use-npm --turbopack)",
+      "Bash(yes \"\")",
+      "Bash(npx create-next-app@latest web --ts --tailwind --app --src-dir --no-eslint --use-npm --turbopack)",
+      "Bash(npm install @supabase/supabase-js)",
+      "Bash(npx next build)",
+      "Bash(npm install lucide-react class-variance-authority clsx tailwind-merge)",
+      "WebFetch(domain:ui.shadcn.com)",
+      "Bash(node --version)",
+      "Bash(npm --version)",
+      "Bash(npm install tw-animate-css)",
+      "Bash(python3 -m json.tool)",
+      "Bash(npx shadcn@latest add button card input badge select separator sidebar switch tooltip -y)",
+      "Bash(test -f /Users/alexis/jordan/web/.env.local)",
+      "Bash(test -f /Users/alexis/jordan/scraper/.env)"
+    ]
+  }
+}

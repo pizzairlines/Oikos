@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
+import Image from "next/image";
 import {
   ArrowLeft, ExternalLink, Heart, MapPin, Building, Zap,
   ArrowUpRight, Ruler, DoorOpen, Loader2,
@@ -63,11 +64,15 @@ export default function ListingPage() {
       {/* Photos */}
       {listing.photos && listing.photos.length > 0 && (
         <Card className="mb-4 overflow-hidden py-0">
-          <img src={listing.photos[0]} alt={listing.title} className="w-full h-64 object-cover" />
+          <div className="relative w-full h-64">
+            <Image src={listing.photos[0]} alt={listing.title} fill sizes="672px" className="object-cover" priority />
+          </div>
           {listing.photos.length > 1 && (
             <div className="flex gap-px bg-border overflow-x-auto">
               {listing.photos.slice(1, 5).map((photo, i) => (
-                <img key={i} src={photo} alt="" className="h-16 w-24 object-cover flex-shrink-0" />
+                <div key={i} className="relative h-16 w-24 flex-shrink-0">
+                  <Image src={photo} alt="" fill sizes="96px" className="object-cover" loading="lazy" />
+                </div>
               ))}
             </div>
           )}

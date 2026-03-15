@@ -28,7 +28,7 @@ export function AppSidebar() {
       <SidebarHeader className="px-4 py-4">
         <a href="/" className="flex items-center gap-2.5">
           <Building2 className="h-5 w-5" />
-          <span className="text-sm font-semibold tracking-tight">ImmoScan</span>
+          <span className="text-sm font-semibold tracking-tight">Oikos</span>
         </a>
       </SidebarHeader>
       <SidebarContent>
