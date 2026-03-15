@@ -1,15 +1,18 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useCallback } from "react";
 import { useParams } from "next/navigation";
 import Image from "next/image";
 import {
   ArrowLeft, ExternalLink, Heart, MapPin, Building, Zap,
-  ArrowUpRight, Ruler, DoorOpen, Loader2, Calculator,
+  ArrowUpRight, Ruler, DoorOpen, Calculator,
 } from "lucide-react";
 import { Listing, SOURCE_LABELS } from "@/lib/types";
 import { fetchListingById, fetchFavoriteIds, toggleFavorite, fetchPriceHistory, PricePoint } from "@/lib/data";
+import { useToast } from "@/components/Toast";
 import { ScoreBadge } from "@/components/ScoreBadge";
+import { DetailSkeleton } from "@/components/ListingSkeleton";
+import { ErrorState } from "@/components/ErrorState";
 import { formatPrice, formatPriceSqm, formatArrondissement, cn } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -17,13 +20,17 @@ import { Input } from "@/components/ui/input";
 
 export default function ListingPage() {
   const params = useParams();
+  const { toast } = useToast();
   const [listing, setListing] = useState<Listing | null>(null);
   const [isFavorite, setIsFavorite] = useState(false);
   const [priceHistory, setPriceHistory] = useState<PricePoint[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
 
-  useEffect(() => {
-    async function load() {
+  const load = useCallback(async () => {
+    setLoading(true);
+    setError(false);
+    try {
       const data = await fetchListingById(params.id as string);
       setListing(data);
       const favIds = await fetchFavoriteIds();
@@ -32,27 +39,42 @@ export default function ListingPage() {
         const history = await fetchPriceHistory(data.id);
         setPriceHistory(history);
       }
+    } catch {
+      setError(true);
+    } finally {
       setLoading(false);
     }
-    load();
   }, [params.id]);
+
+  useEffect(() => { load(); }, [load]);
 
   const handleToggleFavorite = async () => {
     if (!listing) return;
     const nowFav = await toggleFavorite(listing.id, isFavorite);
     setIsFavorite(nowFav);
+    toast(nowFav ? "Ajoute aux favoris" : "Retire des favoris");
   };
 
-  if (loading) {
+  if (loading) return <DetailSkeleton />;
+
+  if (error) {
     return (
-      <div className="flex justify-center py-20">
-        <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-      </div>
+      <ErrorState
+        message="Impossible de charger cette annonce."
+        onRetry={load}
+      />
     );
   }
 
   if (!listing) {
-    return <div className="text-center py-20 text-muted-foreground text-sm">Annonce introuvable.</div>;
+    return (
+      <div className="flex flex-col items-center justify-center py-20 gap-4">
+        <p className="text-sm text-muted-foreground">Annonce introuvable.</p>
+        <Button variant="outline" size="sm" asChild>
+          <a href="/">Retour aux annonces</a>
+        </Button>
+      </div>
+    );
   }
 
   const details = listing.score_details;

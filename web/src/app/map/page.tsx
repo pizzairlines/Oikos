@@ -1,23 +1,28 @@
 "use client";
 
 import { useEffect, useState, useCallback, useRef } from "react";
-import { Map as MapIcon, Loader2 } from "lucide-react";
+import { Map as MapIcon } from "lucide-react";
 import { fetchMapListings, MapListing } from "@/lib/data";
 import { formatArrondissement } from "@/lib/utils";
+import { Skeleton } from "@/components/ui/skeleton";
+import { ErrorState } from "@/components/ErrorState";
+import { Button } from "@/components/ui/button";
 
 export default function MapPage() {
   const [listings, setListings] = useState<MapListing[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
+    setError(false);
     try {
       const data = await fetchMapListings();
       setListings(data);
     } catch {
-      console.error("Failed to load map listings");
+      setError(true);
     } finally {
       setLoading(false);
     }
@@ -119,22 +124,36 @@ export default function MapPage() {
 
   if (loading) {
     return (
-      <div className="flex justify-center py-20">
-        <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+      <div className="-mx-6 -my-8">
+        <Skeleton className="w-full h-[calc(100vh-3rem)] md:h-screen rounded-none" />
       </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <ErrorState
+        message="Impossible de charger la carte."
+        onRetry={load}
+      />
     );
   }
 
   if (listings.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-20 gap-3">
-        <MapIcon className="h-8 w-8 text-muted-foreground" />
-        <p className="text-sm text-muted-foreground">
-          Aucune annonce avec coordonnees GPS.
-        </p>
-        <p className="text-xs text-muted-foreground">
-          Les coordonnees seront disponibles au prochain scan.
-        </p>
+      <div className="flex flex-col items-center justify-center py-20 gap-4">
+        <div className="w-14 h-14 rounded-full bg-muted flex items-center justify-center">
+          <MapIcon className="h-6 w-6 text-muted-foreground" />
+        </div>
+        <div className="text-center">
+          <p className="text-sm font-medium text-foreground mb-1">Aucune annonce sur la carte</p>
+          <p className="text-sm text-muted-foreground max-w-xs">
+            Les coordonnees GPS seront disponibles apres le prochain scan.
+          </p>
+        </div>
+        <Button variant="outline" size="sm" asChild>
+          <a href="/">Voir les annonces</a>
+        </Button>
       </div>
     );
   }

@@ -1,12 +1,14 @@
 "use client";
 
-import { Bell, Plus, Pencil, Trash2, X, Check, Loader2 } from "lucide-react";
+import { Bell, Plus, Pencil, Trash2, X, Check } from "lucide-react";
 import { ARRONDISSEMENTS } from "@/lib/types";
 import { useAlerts } from "@/hooks/use-alerts";
+import { useToast } from "@/components/Toast";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
+import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 
 export default function SettingsPage() {
@@ -15,6 +17,22 @@ export default function SettingsPage() {
     startCreate, startEdit, cancelEdit, setEditing,
     save, remove, toggleActive,
   } = useAlerts();
+  const { toast } = useToast();
+
+  const handleSave = async () => {
+    await save();
+    toast(editing?.id ? "Alerte modifiee" : "Alerte creee");
+  };
+
+  const handleRemove = async (id: string) => {
+    await remove(id);
+    toast("Alerte supprimee");
+  };
+
+  const handleToggle = async (alert: Parameters<typeof toggleActive>[0]) => {
+    await toggleActive(alert);
+    toast(alert.is_active ? "Alerte desactivee" : "Alerte activee");
+  };
 
   return (
     <div className="max-w-2xl mx-auto">
@@ -78,7 +96,7 @@ export default function SettingsPage() {
                       onClick={() => {
                         const current = editing.arrondissements || [];
                         const updated = selected
-                          ? current.filter((a) => a !== arr.value)
+                          ? current.filter((a: string) => a !== arr.value)
                           : [...current, arr.value];
                         setEditing({ ...editing, arrondissements: updated });
                       }}
@@ -91,7 +109,7 @@ export default function SettingsPage() {
             </div>
 
             <div className="flex gap-2 pt-1">
-              <Button size="sm" onClick={save}>
+              <Button size="sm" onClick={handleSave}>
                 <Check className="h-3.5 w-3.5" />
                 Enregistrer
               </Button>
@@ -106,14 +124,36 @@ export default function SettingsPage() {
 
       {/* Alert list */}
       {loading ? (
-        <div className="flex justify-center py-16">
-          <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+        <div className="space-y-2">
+          {Array.from({ length: 2 }).map((_, i) => (
+            <Card key={i}>
+              <CardContent className="py-4">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-2">
+                    <Skeleton className="h-4 w-40" />
+                    <Skeleton className="h-3 w-56" />
+                  </div>
+                  <div className="flex gap-1">
+                    <Skeleton className="h-6 w-10 rounded-full" />
+                    <Skeleton className="h-6 w-6 rounded" />
+                    <Skeleton className="h-6 w-6 rounded" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
         </div>
       ) : alerts.length === 0 && !editing ? (
-        <div className="flex flex-col items-center justify-center py-20 gap-3">
-          <Bell className="h-8 w-8 text-muted-foreground" />
-          <p className="text-sm text-muted-foreground">Aucune alerte configuree.</p>
-          <p className="text-xs text-muted-foreground">Creez-en une pour recevoir des notifications WhatsApp.</p>
+        <div className="flex flex-col items-center justify-center py-20 gap-4">
+          <div className="w-14 h-14 rounded-full bg-muted flex items-center justify-center">
+            <Bell className="h-6 w-6 text-muted-foreground" />
+          </div>
+          <div className="text-center">
+            <p className="text-sm font-medium text-foreground mb-1">Aucune alerte configuree</p>
+            <p className="text-sm text-muted-foreground max-w-xs">
+              Creez une alerte pour recevoir des notifications WhatsApp quand une annonce correspond a vos criteres.
+            </p>
+          </div>
         </div>
       ) : (
         <div className="space-y-2">
@@ -143,7 +183,7 @@ export default function SettingsPage() {
                   <div className="flex items-center gap-1 ml-3">
                     <Switch
                       checked={alert.is_active}
-                      onCheckedChange={() => toggleActive(alert)}
+                      onCheckedChange={() => handleToggle(alert)}
                     />
                     <Button
                       variant="ghost"
@@ -155,7 +195,7 @@ export default function SettingsPage() {
                     <Button
                       variant="ghost"
                       size="icon-sm"
-                      onClick={() => remove(alert.id)}
+                      onClick={() => handleRemove(alert.id)}
                     >
                       <Trash2 className="h-3.5 w-3.5" />
                     </Button>

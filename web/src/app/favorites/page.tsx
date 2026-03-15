@@ -1,12 +1,20 @@
 "use client";
 
-import { Heart, Loader2 } from "lucide-react";
+import { Heart } from "lucide-react";
 import { useFavoriteListings } from "@/hooks/use-favorites";
+import { useToast } from "@/components/Toast";
 import { ListingCard } from "@/components/ListingCard";
+import { ListingGridSkeleton } from "@/components/ListingSkeleton";
 import { Button } from "@/components/ui/button";
 
 export default function FavoritesPage() {
   const { listings, favoriteIds, loading, remove } = useFavoriteListings();
+  const { toast } = useToast();
+
+  const handleRemove = async (id: string) => {
+    await remove(id);
+    toast("Retire des favoris");
+  };
 
   return (
     <div>
@@ -19,14 +27,19 @@ export default function FavoritesPage() {
       </div>
 
       {loading ? (
-        <div className="flex justify-center py-20">
-          <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-        </div>
+        <ListingGridSkeleton count={3} />
       ) : listings.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-20 gap-3">
-          <Heart className="h-8 w-8 text-muted-foreground" />
-          <p className="text-sm text-muted-foreground">Aucun favori pour le moment.</p>
-          <Button variant="link" asChild>
+        <div className="flex flex-col items-center justify-center py-20 gap-4">
+          <div className="w-14 h-14 rounded-full bg-muted flex items-center justify-center">
+            <Heart className="h-6 w-6 text-muted-foreground" />
+          </div>
+          <div className="text-center">
+            <p className="text-sm font-medium text-foreground mb-1">Aucun favori</p>
+            <p className="text-sm text-muted-foreground max-w-xs">
+              Ajoutez des annonces a vos favoris en cliquant sur le coeur pour les retrouver ici.
+            </p>
+          </div>
+          <Button variant="outline" size="sm" asChild>
             <a href="/">Parcourir les annonces</a>
           </Button>
         </div>
@@ -37,7 +50,7 @@ export default function FavoritesPage() {
               key={listing.id}
               listing={listing}
               isFavorite={favoriteIds.has(listing.id)}
-              onToggleFavorite={remove}
+              onToggleFavorite={handleRemove}
             />
           ))}
         </div>

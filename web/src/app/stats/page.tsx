@@ -1,23 +1,28 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { BarChart3, TrendingUp, MapPin, Loader2 } from "lucide-react";
+import { BarChart3, TrendingUp, MapPin } from "lucide-react";
 import { fetchStats, StatsData } from "@/lib/data";
 import { formatArrondissement } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScoreBadge } from "@/components/ScoreBadge";
+import { StatsSkeleton } from "@/components/ListingSkeleton";
+import { ErrorState } from "@/components/ErrorState";
+import { Button } from "@/components/ui/button";
 
 export default function StatsPage() {
   const [stats, setStats] = useState<StatsData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
+    setError(false);
     try {
       const data = await fetchStats();
       setStats(data);
     } catch {
-      console.error("Failed to load stats");
+      setError(true);
     } finally {
       setLoading(false);
     }
@@ -25,19 +30,32 @@ export default function StatsPage() {
 
   useEffect(() => { load(); }, [load]);
 
-  if (loading) {
+  if (loading) return <StatsSkeleton />;
+
+  if (error) {
     return (
-      <div className="flex justify-center py-20">
-        <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-      </div>
+      <ErrorState
+        message="Impossible de charger les statistiques."
+        onRetry={load}
+      />
     );
   }
 
   if (!stats || stats.totalListings === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-20 gap-3">
-        <BarChart3 className="h-8 w-8 text-muted-foreground" />
-        <p className="text-sm text-muted-foreground">Pas encore de donnees. Attendez le prochain scan.</p>
+      <div className="flex flex-col items-center justify-center py-20 gap-4">
+        <div className="w-14 h-14 rounded-full bg-muted flex items-center justify-center">
+          <BarChart3 className="h-6 w-6 text-muted-foreground" />
+        </div>
+        <div className="text-center">
+          <p className="text-sm font-medium text-foreground mb-1">Pas encore de donnees</p>
+          <p className="text-sm text-muted-foreground max-w-xs">
+            Les statistiques apparaitront apres le premier scan d&apos;annonces.
+          </p>
+        </div>
+        <Button variant="outline" size="sm" asChild>
+          <a href="/">Voir les annonces</a>
+        </Button>
       </div>
     );
   }
